@@ -1583,4 +1583,6 @@ Wire Wire Line
 	3700 8900 4500 8900
 Wire Wire Line
 	7000 8900 7000 9000
+Text Notes 11250 9800 0    236  ~ 47
+Matt Hollands\n2020\nprojects.matthollands.com
 $EndSCHEMATC
