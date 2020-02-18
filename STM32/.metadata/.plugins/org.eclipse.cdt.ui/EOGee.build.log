@@ -1,0 +1,13 @@
+15:17:34 **** Incremental Build of configuration Debug for project EOGee ****
+make -j11 all 
+arm-none-eabi-size   EOGee.elf 
+arm-none-eabi-objcopy  -O binary  EOGee.elf  "EOGee.bin"
+   text	   data	    bss	    dec	    hex	filename
+  11740	    388	   5612	  17740	   454c	EOGee.elf
+Finished building: default.size.stdout
+ 
+Finished building: EOGee.bin
+ 
+
+15:17:34 Build Finished. 0 errors, 0 warnings. (took 111ms)
+
