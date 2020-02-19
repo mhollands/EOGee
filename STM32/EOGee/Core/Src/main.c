@@ -107,6 +107,8 @@ int main(void)
   HAL_GPIO_WritePin(GPIOA, LED2_Pin, GPIO_PIN_RESET);
   /* USER CODE END 2 */
  
+ 
+
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   //start timer
@@ -329,7 +331,6 @@ static void MX_GPIO_Init(void)
   */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	HAL_GPIO_TogglePin(GPIOA, LED2_Pin);
 	HAL_ADC_Stop_IT(hadc);
 
 	uint32_t sample = HAL_ADC_GetValue(hadc);
@@ -337,6 +338,10 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	{
 		buffer[buffer_pointer] = (uint16_t) sample;
 		buffer_pointer++;
+	}
+	else
+	{
+		HAL_GPIO_WritePin(GPIOA, LED2_Pin, GPIO_PIN_SET);
 	}
 }
 
