@@ -54,3 +54,4 @@ dkms.conf
 #STM32 History files
 *.history*
 *.metadata*
+*.list

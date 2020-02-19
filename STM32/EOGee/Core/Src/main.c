@@ -48,7 +48,9 @@ ADC_HandleTypeDef hadc;
 TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
-
+#define BUFFER_LEN 10
+uint16_t buffer[BUFFER_LEN];
+volatile uint8_t buffer_pointer;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -98,18 +100,17 @@ int main(void)
   MX_ADC_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_Delay(1000);
+  HAL_Delay(3000);
   CDC_Transmit_FS((uint8_t*)"Hello\n\r", 7);
 
   HAL_GPIO_WritePin(GPIOA, LED1_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(GPIOA, LED2_Pin, GPIO_PIN_RESET);
   /* USER CODE END 2 */
  
- 
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   //start timer
+  buffer_pointer = 0;
   HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
   uint8_t i = 0;
   while (1)
@@ -118,12 +119,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 	  i += 1;
-	  CDC_Transmit_FS(&i, 1);
-	  if(i == 0)
+	  if(buffer_pointer == BUFFER_LEN)
 	  {
 		  HAL_GPIO_TogglePin(GPIOA, LED1_Pin);
+		  CDC_Transmit_FS((void*)buffer, 2*BUFFER_LEN);
+		  buffer_pointer = 0;
 	  }
-	  HAL_Delay(1);
   }
   /* USER CODE END 3 */
 }
@@ -243,7 +244,7 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 732;
+  htim1.Init.Prescaler = 7;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim1.Init.Period = 65535;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -330,6 +331,13 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	HAL_GPIO_TogglePin(GPIOA, LED2_Pin);
 	HAL_ADC_Stop_IT(hadc);
+
+	uint32_t sample = HAL_ADC_GetValue(hadc);
+	if(buffer_pointer < BUFFER_LEN)
+	{
+		buffer[buffer_pointer] = (uint16_t) sample;
+		buffer_pointer++;
+	}
 }
 
 /**
