@@ -18,7 +18,7 @@ def update(frame):
 	global ydata
 	num_bytes_available = int(np.floor(s.in_waiting/2.0)*2)
 	points_8bit = s.read(num_bytes_available)
-	points_16bit = [points_8bit[i] * 256 + points_8bit[i+1] for i in range(0,len(points_8bit), 2)]
+	points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
 	[ydata.append(x) for x in points_16bit]
 	if(len(ydata) > 1000):
 		ydata = ydata[-1000:]
