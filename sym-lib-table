@@ -1,3 +1,0 @@
-(sym_lib_table
-  (lib (name EOGee-rescue)(type Legacy)(uri ${KIPRJMOD}/EOGee-rescue.lib)(options "")(descr ""))
-)
