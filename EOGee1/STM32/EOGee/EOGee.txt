@@ -1,0 +1,60 @@
+Configuration	EOGee
+STM32CubeMX 	5.5.0
+Date	02/16/2020
+MCU	STM32F042F4Px
+
+
+
+PERIPHERALS	MODES	FUNCTIONS	PINS
+SYS	Pins PA11/12 instead of pins PA9/10	SYS_VS_PINREMAP	VP_SYS_VS_PINREMAP
+SYS	SysTick	SYS_VS_Systick	VP_SYS_VS_Systick
+USB	Device (FS)	USB_DM	PA11
+USB	Device (FS)	USB_DP	PA12
+
+
+
+Pin Nb	PINs	FUNCTIONs	LABELs
+12	PA6	GPIO_Output	LED1
+13	PA7	GPIO_Output	LED2
+17	PA11	USB_DM	
+18	PA12	USB_DP	
+PERIPHERALS	MODES	FUNCTIONS	PINS
+SYS	Pins PA11/12 instead of pins PA9/10	SYS_VS_PINREMAP	VP_SYS_VS_PINREMAP
+SYS	SysTick	SYS_VS_Systick	VP_SYS_VS_Systick
+USB	Device (FS)	USB_DM	PA11
+USB	Device (FS)	USB_DP	PA12
+
+
+
+Pin Nb	PINs	FUNCTIONs	LABELs
+12	PA6	GPIO_Output	LED1
+13	PA7	GPIO_Output	LED2
+17	PA11	USB_DM	
+18	PA12	USB_DP	
+
+
+
+SOFTWARE PROJECT
+
+Project Settings : 
+Project Name : EOGee
+Project Folder : /Users/matthollands/Library/Mobile Documents/com~apple~CloudDocs/PersonalProjects/EOGee/Github/EOGee/STM32/EOGee
+Toolchain / IDE : STM32CubeIDE
+Firmware Package Name and Version : STM32Cube FW_F0 V1.11.0
+
+
+Code Generation Settings : 
+STM32Cube MCU packages and embedded software packs : Copy only the necessary library files
+Generate peripheral initialization as a pair of '.c/.h' files per peripheral : No
+Backup previously generated files when re-generating : No
+Delete previously generated files when not re-generated : Yes
+Set all free pins as analog (to optimize the power consumption) : No
+
+
+Toolchains Settings : 
+Compiler Optimizations : 
+
+
+
+
+
