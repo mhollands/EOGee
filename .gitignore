@@ -55,3 +55,7 @@ dkms.conf
 *.history*
 *.metadata*
 *.list
+
+#Others
+.DS_Store
+*/.DS_Store

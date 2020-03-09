@@ -35,12 +35,14 @@ def update(frame):
 	points_8bit = s.read(num_bytes_available)
 	points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
 	[ydata.append(x) for x in points_16bit]
-	if(len(ydata) > buffer_len):
-		ydata = ydata[-buffer_len:]
+	# if(len(ydata) > buffer_len):
+	# 	ydata = ydata[-buffer_len:]
 
 	volts = np.array(ydata) * 3.3 / np.power(2,12)
-
 	volts_filt = scipy.signal.lfilter(filt_b, filt_a, volts)
+
+	volts = volts[-buffer_len:]
+	volts_filt = volts_filt[-buffer_len:]
 
 	ax_t.set_ylim(np.min(volts), np.max(volts))
 	ax_t.set_xlim(0, len(volts))
@@ -51,7 +53,7 @@ def update(frame):
 	fdata = np.abs(np.fft.fft(volts - np.mean(volts)))
 	fdata_filt = np.abs(np.fft.fft(volts_filt - np.mean(volts_filt)))
 	freqs = np.arange(0,int(len(fdata)/2)) * sampling_rate / len(fdata)
-	ax_f.set_ylim(min(fdata), max(fdata_filt))
+	ax_f.set_ylim(np.min([fdata, fdata_filt]), np.max([fdata, fdata_filt]))
 	ax_f.set_xlim(0, np.max(freqs))
 	ln_f.set_data(freqs, fdata[0:int(len(fdata)/2)])
 	ln_ff.set_data(freqs, fdata_filt[0:int(len(fdata)/2)])
@@ -70,6 +72,9 @@ ln_ff, = ax_f.plot([], [], 'b-')
 
 ax_t.set_xlabel("Sample")
 ax_t.set_ylabel("Voltage / V")
+
+ax_f.set_xlabel("Frequency /Hz")
+ax_f.set_ylabel("Power")
 
 ani = FuncAnimation(fig, update, init_func=init)
 plt.show()
