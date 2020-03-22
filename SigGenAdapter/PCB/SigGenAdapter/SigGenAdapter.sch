@@ -1,0 +1,415 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Mechanical:MountingHole H1
+U 1 1 5E92943D
+P 8300 3700
+F 0 "H1" H 8400 3700 50  0000 L CNN
+F 1 "MountingHole" H 8400 3655 50  0001 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 8300 3700 50  0001 C CNN
+F 3 "~" H 8300 3700 50  0001 C CNN
+	1    8300 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H2
+U 1 1 5E929A05
+P 8300 4100
+F 0 "H2" H 8400 4100 50  0000 L CNN
+F 1 "MountingHole" H 8400 4055 50  0001 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 8300 4100 50  0001 C CNN
+F 3 "~" H 8300 4100 50  0001 C CNN
+	1    8300 4100
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H3
+U 1 1 5E929D2A
+P 8300 4450
+F 0 "H3" H 8400 4450 50  0000 L CNN
+F 1 "MountingHole" H 8400 4405 50  0001 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 8300 4450 50  0001 C CNN
+F 3 "~" H 8300 4450 50  0001 C CNN
+	1    8300 4450
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole H4
+U 1 1 5E929F94
+P 8300 4800
+F 0 "H4" H 8400 4800 50  0000 L CNN
+F 1 "MountingHole" H 8400 4755 50  0001 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3" H 8300 4800 50  0001 C CNN
+F 3 "~" H 8300 4800 50  0001 C CNN
+	1    8300 4800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_Coaxial J1
+U 1 1 5E92A51A
+P 3750 3550
+F 0 "J1" H 3678 3697 50  0000 C CNN
+F 1 "Conn_Coaxial" H 3678 3697 50  0001 C CNN
+F 2 "Connector_Coaxial:BNC_Amphenol_B6252HB-NPP3G-50_Horizontal" H 3750 3550 50  0001 C CNN
+F 3 " ~" H 3750 3550 50  0001 C CNN
+	1    3750 3550
+	-1   0    0    -1  
+$EndComp
+$Comp
+L Device:R_POT RV1
+U 1 1 5E92AD60
+P 5550 3600
+F 0 "RV1" V 5435 3600 50  0000 C CNN
+F 1 "R_POT" V 5434 3600 50  0001 C CNN
+F 2 "digikey-footprints:Potentiometer_P120PK-Y25BR10K" H 5550 3600 50  0001 C CNN
+F 3 "~" H 5550 3600 50  0001 C CNN
+	1    5550 3600
+	0    -1   1    0   
+$EndComp
+Text Label 4300 3550 2    50   ~ 0
+SIGNAL_P
+Text Label 5000 3600 0    50   ~ 0
+SIGNAL_P
+NoConn ~ 5700 3600
+Text Label 6050 3900 2    50   ~ 0
+SIGNAL_P_R
+Wire Wire Line
+	5550 3900 5550 3750
+$Comp
+L Connector:Screw_Terminal_01x01 J3
+U 1 1 5E9303DA
+P 7600 3500
+F 0 "J3" H 7680 3496 50  0000 L CNN
+F 1 "Screw_Terminal_01x01" H 7680 3451 50  0001 L CNN
+F 2 "MountingHole:MountingHole_2.2mm_M2_Pad" H 7600 3500 50  0001 C CNN
+F 3 "~" H 7600 3500 50  0001 C CNN
+	1    7600 3500
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Screw_Terminal_01x01 J4
+U 1 1 5E930964
+P 7600 4250
+F 0 "J4" H 7680 4246 50  0000 L CNN
+F 1 "Screw_Terminal_01x01" H 7680 4201 50  0001 L CNN
+F 2 "MountingHole:MountingHole_2.2mm_M2_Pad" H 7600 4250 50  0001 C CNN
+F 3 "~" H 7600 4250 50  0001 C CNN
+	1    7600 4250
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Screw_Terminal_01x01 J5
+U 1 1 5E930E01
+P 7600 5000
+F 0 "J5" H 7680 4996 50  0000 L CNN
+F 1 "Screw_Terminal_01x01" H 7680 4951 50  0001 L CNN
+F 2 "MountingHole:MountingHole_2.2mm_M2_Pad" H 7600 5000 50  0001 C CNN
+F 3 "~" H 7600 5000 50  0001 C CNN
+	1    7600 5000
+	1    0    0    -1  
+$EndComp
+Text Label 6700 3500 0    50   ~ 0
+SIGNAL_P_R
+$Comp
+L Device:R R1
+U 1 1 5E939BC1
+P 5550 3200
+F 0 "R1" V 5343 3200 50  0000 C CNN
+F 1 "R" V 5434 3200 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 5480 3200 50  0001 C CNN
+F 3 "~" H 5550 3200 50  0001 C CNN
+	1    5550 3200
+	0    1    1    0   
+$EndComp
+Text Label 5050 3200 0    50   ~ 0
+SIGNAL_P
+Text Label 6150 3200 2    50   ~ 0
+SIGNAL_P_R
+$Comp
+L Connector:TestPoint TP1
+U 1 1 5E93AB81
+P 4700 2800
+F 0 "TP1" H 4758 2872 50  0000 L CNN
+F 1 "TestPoint" H 4758 2827 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 4900 2800 50  0001 C CNN
+F 3 "~" H 4900 2800 50  0001 C CNN
+	1    4700 2800
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:TestPoint TP2
+U 1 1 5E93B630
+P 6250 2800
+F 0 "TP2" H 6308 2872 50  0000 L CNN
+F 1 "TestPoint" H 6308 2827 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 6450 2800 50  0001 C CNN
+F 3 "~" H 6450 2800 50  0001 C CNN
+	1    6250 2800
+	1    0    0    -1  
+$EndComp
+Text Label 4300 2950 0    50   ~ 0
+GND
+Wire Wire Line
+	4700 2950 4700 2800
+Text Label 6750 2950 2    50   ~ 0
+GND_R
+Wire Wire Line
+	6250 2950 6250 2800
+$Comp
+L Connector_Generic:Conn_01x03 J2
+U 1 1 5E93D542
+P 4200 4800
+F 0 "J2" H 4280 4796 50  0000 L CNN
+F 1 "Conn_01x03" H 4280 4751 50  0001 L CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x03_P2.54mm_Vertical" H 4200 4800 50  0001 C CNN
+F 3 "~" H 4200 4800 50  0001 C CNN
+	1    4200 4800
+	1    0    0    -1  
+$EndComp
+Text Label 3600 4700 0    50   ~ 0
+SIGNAL_P
+Wire Wire Line
+	4300 2950 4700 2950
+Wire Wire Line
+	6250 2950 6750 2950
+Wire Wire Line
+	5050 3200 5400 3200
+Wire Wire Line
+	5700 3200 6150 3200
+$Comp
+L Device:R_POT RV2
+U 1 1 5E9442EC
+P 5550 4650
+F 0 "RV2" V 5435 4650 50  0000 C CNN
+F 1 "R_POT" V 5434 4650 50  0001 C CNN
+F 2 "digikey-footprints:Potentiometer_P120PK-Y25BR10K" H 5550 4650 50  0001 C CNN
+F 3 "~" H 5550 4650 50  0001 C CNN
+	1    5550 4650
+	0    -1   1    0   
+$EndComp
+Text Label 5000 4650 0    50   ~ 0
+SIGNAL_N
+NoConn ~ 5700 4650
+Text Label 6050 4950 2    50   ~ 0
+SIGNAL_N_R
+Wire Wire Line
+	5550 4950 5550 4800
+$Comp
+L Device:R R2
+U 1 1 5E9442FC
+P 5550 4250
+F 0 "R2" V 5343 4250 50  0000 C CNN
+F 1 "R" V 5434 4250 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 5480 4250 50  0001 C CNN
+F 3 "~" H 5550 4250 50  0001 C CNN
+	1    5550 4250
+	0    1    1    0   
+$EndComp
+Text Label 5050 4250 0    50   ~ 0
+SIGNAL_N
+Text Label 6150 4250 2    50   ~ 0
+SIGNAL_N_R
+Wire Wire Line
+	5050 4250 5400 4250
+Wire Wire Line
+	5700 4250 6150 4250
+Wire Wire Line
+	5000 4650 5400 4650
+Wire Wire Line
+	5550 4950 6050 4950
+Wire Wire Line
+	5000 3600 5400 3600
+Wire Wire Line
+	5550 3900 6050 3900
+Text Label 6700 5000 0    50   ~ 0
+SIGNAL_N_R
+$Comp
+L Device:R_POT RV3
+U 1 1 5E9478DC
+P 5550 5700
+F 0 "RV3" V 5435 5700 50  0000 C CNN
+F 1 "R_POT" V 5434 5700 50  0001 C CNN
+F 2 "digikey-footprints:Potentiometer_P120PK-Y25BR10K" H 5550 5700 50  0001 C CNN
+F 3 "~" H 5550 5700 50  0001 C CNN
+	1    5550 5700
+	0    -1   1    0   
+$EndComp
+Text Label 5000 5700 0    50   ~ 0
+GND
+NoConn ~ 5700 5700
+Text Label 6050 6000 2    50   ~ 0
+GND_R
+Wire Wire Line
+	5550 6000 5550 5850
+$Comp
+L Device:R R3
+U 1 1 5E9478EA
+P 5550 5300
+F 0 "R3" V 5343 5300 50  0000 C CNN
+F 1 "R" V 5434 5300 50  0000 C CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 5480 5300 50  0001 C CNN
+F 3 "~" H 5550 5300 50  0001 C CNN
+	1    5550 5300
+	0    1    1    0   
+$EndComp
+Text Label 5050 5300 0    50   ~ 0
+GND
+Text Label 6150 5300 2    50   ~ 0
+GND_R
+Wire Wire Line
+	5050 5300 5400 5300
+Wire Wire Line
+	5700 5300 6150 5300
+Wire Wire Line
+	5000 5700 5400 5700
+Wire Wire Line
+	5550 6000 6050 6000
+Text Label 6700 4250 0    50   ~ 0
+GND_R
+Wire Wire Line
+	3600 4700 4000 4700
+Text Label 3600 4900 0    50   ~ 0
+SIGNAL_N
+Wire Wire Line
+	3600 4800 4000 4800
+Text Label 3600 4800 0    50   ~ 0
+GND
+Wire Wire Line
+	3600 4900 4000 4900
+$Comp
+L Device:R R5
+U 1 1 5E94CCCD
+P 7250 4600
+F 0 "R5" H 7180 4554 50  0000 R CNN
+F 1 "R" H 7180 4645 50  0000 R CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 7180 4600 50  0001 C CNN
+F 3 "~" H 7250 4600 50  0001 C CNN
+	1    7250 4600
+	-1   0    0    1   
+$EndComp
+Connection ~ 7250 4250
+Wire Wire Line
+	7250 4250 7400 4250
+Wire Wire Line
+	7250 4750 7250 5000
+Wire Wire Line
+	7250 5000 7400 5000
+Wire Wire Line
+	7250 4450 7250 4250
+$Comp
+L Device:R R4
+U 1 1 5E94F35F
+P 7250 3850
+F 0 "R4" H 7180 3804 50  0000 R CNN
+F 1 "R" H 7180 3895 50  0000 R CNN
+F 2 "Resistor_SMD:R_0603_1608Metric" V 7180 3850 50  0001 C CNN
+F 3 "~" H 7250 3850 50  0001 C CNN
+	1    7250 3850
+	-1   0    0    1   
+$EndComp
+Wire Wire Line
+	7250 4000 7250 4250
+Wire Wire Line
+	7250 3700 7250 3500
+Connection ~ 7250 3500
+Wire Wire Line
+	7250 3500 7400 3500
+Wire Wire Line
+	6700 4250 7250 4250
+Wire Wire Line
+	6700 5000 7250 5000
+Wire Wire Line
+	6700 3500 7250 3500
+$Comp
+L Connector:TestPoint TP4
+U 1 1 5E9581BB
+P 4700 2350
+F 0 "TP4" H 4758 2422 50  0000 L CNN
+F 1 "TestPoint" H 4758 2377 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 4900 2350 50  0001 C CNN
+F 3 "~" H 4900 2350 50  0001 C CNN
+	1    4700 2350
+	1    0    0    -1  
+$EndComp
+Text Label 4300 2500 0    50   ~ 0
+SIGNAL_N
+Wire Wire Line
+	4700 2500 4700 2350
+Wire Wire Line
+	4300 2500 4700 2500
+$Comp
+L Connector:TestPoint TP3
+U 1 1 5E958F61
+P 4700 1900
+F 0 "TP3" H 4758 1972 50  0000 L CNN
+F 1 "TestPoint" H 4758 1927 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 4900 1900 50  0001 C CNN
+F 3 "~" H 4900 1900 50  0001 C CNN
+	1    4700 1900
+	1    0    0    -1  
+$EndComp
+Text Label 4300 2050 0    50   ~ 0
+SIGNAL_P
+Wire Wire Line
+	4700 2050 4700 1900
+Wire Wire Line
+	4300 2050 4700 2050
+$Comp
+L Connector:TestPoint TP6
+U 1 1 5E959ADC
+P 6250 2350
+F 0 "TP6" H 6308 2422 50  0000 L CNN
+F 1 "TestPoint" H 6308 2377 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 6450 2350 50  0001 C CNN
+F 3 "~" H 6450 2350 50  0001 C CNN
+	1    6250 2350
+	1    0    0    -1  
+$EndComp
+Text Label 6750 2500 2    50   ~ 0
+SIGNAL_N_R
+Wire Wire Line
+	6250 2500 6250 2350
+Wire Wire Line
+	6250 2500 6750 2500
+$Comp
+L Connector:TestPoint TP5
+U 1 1 5E95A82F
+P 6250 1900
+F 0 "TP5" H 6308 1972 50  0000 L CNN
+F 1 "TestPoint" H 6308 1927 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_1.0x1.0mm" H 6450 1900 50  0001 C CNN
+F 3 "~" H 6450 1900 50  0001 C CNN
+	1    6250 1900
+	1    0    0    -1  
+$EndComp
+Text Label 6750 2050 2    50   ~ 0
+SIGNAL_P_R
+Wire Wire Line
+	6250 2050 6250 1900
+Wire Wire Line
+	6250 2050 6750 2050
+Wire Wire Line
+	3950 3550 4300 3550
+Text Label 3950 3950 2    50   ~ 0
+GND
+Wire Wire Line
+	3950 3950 3750 3950
+Wire Wire Line
+	3750 3750 3750 3950
+Connection ~ 7250 5000
+Text Notes 4950 1500 0    50   ~ 0
+Potentiometer: 987-1710-ND\nBNC: A97555-ND\n
+$EndSCHEMATC
