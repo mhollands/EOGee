@@ -44,8 +44,8 @@ EOGee.bin \
 all: EOGee.elf secondary-outputs
 
 # Tool invocations
-EOGee.elf: $(OBJS) $(USER_OBJS) /Users/matthollands/Library/Mobile\ Documents/com~apple~CloudDocs/PersonalProjects/EOGee/Github/EOGee/STM32/EOGee/STM32F042F4PX_FLASH.ld
-	arm-none-eabi-gcc -o "EOGee.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"/Users/matthollands/Library/Mobile Documents/com~apple~CloudDocs/PersonalProjects/EOGee/Github/EOGee/STM32/EOGee/STM32F042F4PX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EOGee.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+EOGee.elf: $(OBJS) $(USER_OBJS) /Users/matthollands/Library/Mobile\ Documents/com~apple~CloudDocs/PersonalProjects/EOGee/Github/EOGee/EOGee1/STM32/EOGee/STM32F042F4PX_FLASH.ld
+	arm-none-eabi-gcc -o "EOGee.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0 -T"/Users/matthollands/Library/Mobile Documents/com~apple~CloudDocs/PersonalProjects/EOGee/Github/EOGee/EOGee1/STM32/EOGee/STM32F042F4PX_FLASH.ld" --specs=nosys.specs -Wl,-Map="EOGee.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
