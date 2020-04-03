@@ -48,26 +48,40 @@ def update(frame, s):
 
 	# For each new sample, update dy
 	while(len(d2ydata) < len(ydata) - 1):
+		# If this is the first sample we can't calculate d2y or NSigma or MSF so put 0
 		if(len(d2ydata) == 0):
 			d2ydata.append(0)
 			NSigmadata.append(0)
-		else:
-			d2ydata.append(ydata[len(d2ydata)+1] - 2*ydata[len(d2ydata)] + ydata[len(d2ydata)-1])
-			if(len(d2ydata) < acceleration_window):
-				NSigmadata.append(0)
-			else:
-				NSigmadata.append(N*np.std(d2ydata[-acceleration_window:]))
+			MSFdata.append(0)
+			continue
+		# Calculate d2y
+		d2ydata.append(ydata[len(d2ydata)+1] - 2*ydata[len(d2ydata)] + ydata[len(d2ydata)-1])
+		# If we are before the acceleration window, we cannot calculate NSigma so we cannot calculate MSF, put 0
+		if(len(d2ydata) < acceleration_window):
+			NSigmadata.append(0)
+			MSFdata.append(0)
+			continue
+		# Calcualte NSigma as N times the std of the previous samples in accerleation window
+		NSigmadata.append(N*np.std(d2ydata[-acceleration_window:]))
+		# If MSF is 0 and d2y crossed the NSigma threshold, set MSF to 1 or -1
+		if(MSFdata[-1] == 0 and np.abs(d2ydata[-1]) > np.abs(NSigmadata[-1])):
+			MSFdata.append(np.sign(d2ydata[-1]))
+			continue
+		# By default MSF should retain state
+		MSFdata.append(MSFdata[-1])
 
 	# Select the end samples
 	y = ydata[-buffer_len:]
 	dy = dydata[-buffer_len:]
 	d2y = d2ydata[-buffer_len:]
 	NSigma = NSigmadata[-buffer_len:]
+	MSF = MSFdata[-buffer_len:]
 
 	ty = range(len(ydata)-buffer_len, len(ydata))
-	tdy = range(len(dydata)-buffer_len, len(dydata))
+	tdy = np.array(range(len(dydata)-buffer_len, len(dydata)))-0.5 #The time of each dy sample is actually 0.5 samples behind y
 	td2y = range(len(d2ydata)-buffer_len, len(d2ydata))
 	tNSigma = range(len(NSigmadata)-buffer_len, len(NSigmadata))
+	tMSF = range(len(MSFdata)-buffer_len, len(MSFdata))
 
 	# Make sure we have enough samples to plot y data
 	if(len(y) < len(ty)):
@@ -108,11 +122,18 @@ def update(frame, s):
 	ln_nsigma_p.set_data(tNSigma, NSigma)
 	ln_nsigma_n.set_data(tNSigma, -np.array(NSigma))
 	
+	# Make sure we have enough samples to plot MSF data
+	if(len(MSF) < len(tMSF)):
+		print("Waiting for MSF-buffer to fill, {0}/{1}".format(len(MSF), len(tMSF)))
+		return
+	ln_MSF.set_data(tMSF, MSF)
+	ax_MSF.set_ylim(-1.5,1.5)
+	ax_MSF.set_xlim(np.min(tMSF), np.max(tMSF))	
 	return
 
 s = serial.Serial("/dev/tty.usbmodem2050316A41501")
 
-buffer_len = 1000
+buffer_len = 2500
 acceleration_window = 200
 sampling_rate = 48000000/65336
 N = 3.4
