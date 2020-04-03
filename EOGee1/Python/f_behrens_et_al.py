@@ -25,84 +25,105 @@ def update(frame, s):
 	# Get data from source
 	[timestamp, data] = get_data(s)
 
-	# Save data
+	# Get the latest processed data point
+	y_ptr = len(ydata)
+	dy_ptr = len(dydata)
+	d2y_ptr = len(d2ydata)
+
+	# Save new data
 	timestamps.append(timestamp)
-	[ydata.append(x) for x in data]
 
-	N = 3.4
-	acceleration_window = 200
+	# Get latest processed sample
+	t_latest = len(ydata)
 
-	if(len(ydata) <= buffer_len + acceleration_window):
-		print("Filling buffer {0}/{1}".format(len(ydata), buffer_len + acceleration_window))
+	# Add new ydata
+	ydata.extend(data)
+
+	# For each new sample, update dy
+	while(len(dydata) < len(ydata)):
+		if(len(dydata) == 0):
+			dydata.append(0)
+		else:
+			dydata.append(ydata[len(dydata)] - ydata[len(dydata)-1])
+
+	# For each new sample, update dy
+	while(len(d2ydata) < len(ydata) - 1):
+		if(len(d2ydata) == 0):
+			d2ydata.append(0)
+			NSigmadata.append(0)
+		else:
+			d2ydata.append(ydata[len(d2ydata)+1] - 2*ydata[len(d2ydata)] + ydata[len(d2ydata)-1])
+			if(len(d2ydata) < acceleration_window):
+				NSigmadata.append(0)
+			else:
+				NSigmadata.append(N*np.std(d2ydata[-acceleration_window:]))
+
+	# Select the end samples
+	y = ydata[-buffer_len:]
+	dy = dydata[-buffer_len:]
+	d2y = d2ydata[-buffer_len:]
+	NSigma = NSigmadata[-buffer_len:]
+
+	ty = range(len(ydata)-buffer_len, len(ydata))
+	tdy = range(len(dydata)-buffer_len, len(dydata))
+	td2y = range(len(d2ydata)-buffer_len, len(d2ydata))
+	tNSigma = range(len(NSigmadata)-buffer_len, len(NSigmadata))
+
+	# Make sure we have enough samples to plot y data
+	if(len(y) < len(ty)):
+		print("Waiting for y-buffer to fill, {0}/{1}".format(len(y), len(ty)))
 		return
-
-	# We want to end up with a certain number of time points
-	final_y_num_samples = buffer_len
-	# Each time we differentiate we get one point less
-	final_dy_num_samples =  final_y_num_samples - 1
-	final_d2y_num_samples = final_dy_num_samples - 1
-
-	# We need enough data to show our buffer and also calculate NSigma over the acceleration window prior to the first point (but we include the first point in it's window so need one less point)
-	processing_d2y_numsamples = final_d2y_num_samples + acceleration_window - 1
-	# Differentiaton looses one point
-	processing_dy_numsamples = processing_d2y_numsamples + 1
-	# Differentiaton looses one point
-	processing_y_numsamples = processing_dy_numsamples + 1
-
-	# Select the y data
-	y = ydata[-processing_y_numsamples:]
-	# The last position point is t0
-	ty = np.array(range(-processing_y_numsamples, 0)) + 1
-
-	# Differentiate to get velocity
-	dy = [y[i] - y[i-1] for i in range(1, len(y))]
-	# The last velocity point is t0 - 0.5
-	tdy = np.array(range(-processing_dy_numsamples, 0)) + 0.5
-
-	# Differentiate to get acceleration
-	d2y = [dy[i] - dy[i-1] for i in range(1, len(dy))]
-	# The last acceleration point is t0 - 1
-	td2y = np.array(range(-processing_d2y_numsamples, 0))
-
-	# Calcualte NSigma
-	NSigma = N * np.array([np.std(d2y[i-acceleration_window+1:i+1]) for i in range(acceleration_window-1, len(d2y))])
-
-	y = y[-final_y_num_samples:]
-	ty = ty[-final_y_num_samples:]
-	dy = dy[-final_dy_num_samples:]
-	tdy = tdy[-final_dy_num_samples:]
-	d2y = d2y[-final_d2y_num_samples:]
-	td2y = td2y[-final_d2y_num_samples:]
 
 	# Update position plot
 	ln_y.set_data(ty, y)
 	ax_y.set_ylim(np.min(y), np.max(y))
 	ax_y.set_xlim(np.min(ty), np.max(ty))
 
+	# Make sure we have enough samples to plot dy data
+	if(len(dy) < len(tdy)):
+		print("Waiting for dy-buffer to fill, {0}/{1}".format(len(dy), len(tdy)))
+		return
+
 	# Update velocity plot
 	ln_dy.set_data(tdy, dy)
 	ax_dy.set_ylim(np.min(dy), np.max(dy))
-	ax_d2y.set_xlim(np.min(tdy), np.max(tdy))	
+	ax_dy.set_xlim(np.min(tdy), np.max(tdy))	
 
+	# Make sure we have enough samples to plot dy data
+	if(len(d2y) < len(td2y)):
+		print("Waiting for d2y-buffer to fill, {0}/{1}".format(len(d2y), len(td2y)))
+		return
+	
 	# Update acceleration plot
 	ln_d2y.set_data(td2y, d2y)
-	ln_nsigma_p.set_data(td2y, NSigma)
-	ln_nsigma_n.set_data(td2y, -NSigma)
-	ylim = [np.min([2*np.min(-NSigma), np.min(d2y)]),np.max([2*np.max(NSigma), np.max(d2y)])]
+	ylim = [np.min([-2*np.max(NSigma), np.min(d2y)]),np.max([2*np.max(NSigma), np.max(d2y)])]
+	# ylim = [np.min([0, np.min(d2y)]),np.max([0, np.max(d2y)])]
 	ax_d2y.set_ylim(ylim)
 	ax_d2y.set_xlim(np.min(td2y), np.max(td2y))
+
+	# Make sure we have enough samples to plot NSigma data
+	if(len(NSigma) < len(tNSigma)):
+		print("Waiting for NSigma-buffer to fill, {0}/{1}".format(len(NSigma), len(tNSigma)))
+		return
+	ln_nsigma_p.set_data(tNSigma, NSigma)
+	ln_nsigma_n.set_data(tNSigma, -np.array(NSigma))
 	
-	return ln_y, ln_dy, ln_d2y
+	return
 
 s = serial.Serial("/dev/tty.usbmodem2050316A41501")
 
-buffer_len = 2500
+buffer_len = 1000
+acceleration_window = 200
 sampling_rate = 48000000/65336
-
+N = 3.4
 
 timestamps = []
-fig, ax = plt.subplots(3,1, sharex=True)
+fig, ax = plt.subplots(4,1, sharex=True)
 ydata = []
+dydata = []
+d2ydata = []
+NSigmadata = []
+MSFdata = []
 
 ax_y = ax[0]
 ln_y, = ax_y.plot([], [], 'r-')
@@ -120,6 +141,12 @@ ln_nsigma_p, = ax_d2y.plot([], [], 'b--')
 ln_nsigma_n, = ax_d2y.plot([], [], 'b--')
 ax_d2y.set_xlabel("Sample")
 ax_d2y.set_ylabel("dV2/d2yt / Vs^-2")
+
+ax_MSF = ax[3]
+ln_MSF, = ax_MSF.plot([], [], 'r-')
+ln_MSF, = ax_MSF.plot([], [], 'b--')
+ax_MSF.set_xlabel("Sample")
+ax_MSF.set_ylabel("MSF")
 
 ani = FuncAnimation(fig, update, fargs=[s])
 plt.show()
