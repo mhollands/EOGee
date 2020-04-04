@@ -9,6 +9,10 @@ from matplotlib.animation import FuncAnimation
 import time
 from typing import NamedTuple
 
+def onClick(event):
+    global pause
+    pause ^= True
+
 def get_data(s):
 	global playback_ptr
 	timestamp = None
@@ -31,6 +35,11 @@ def get_data(s):
 
 def update(frame, s):
 	global ydata
+	global pause
+
+	if(pause):
+		return
+
 	# Get data from source
 	[timestamp, data] = get_data(s)
 	# Get the latest processed data point
@@ -56,12 +65,13 @@ def update(frame, s):
 
 	# For each new sample, update dy
 	while(len(d2ydata) < len(ydata) - 1):
-		# If this is the first sample we can't calculate d2y or NSigma or MSF or F1 so put 0
+		# If this is the first sample we can't calculate d2y or NSigma or MSF or F1 or Fmon so put 0
 		if(len(d2ydata) == 0):
 			d2ydata.append(0)
 			NSigmadata.append(0)
 			MSFdata.append(0)
 			F1data.append(0)
+			Fmondata.append(0)
 			continue
 
 		# Calculate d2y
@@ -71,6 +81,7 @@ def update(frame, s):
 			NSigmadata.append(0)
 			MSFdata.append(0)
 			F1data.append(0)
+			Fmondata.append(0)
 			continue
 		# Calcualte NSigma as N times the std of the previous samples in accerleation window
 		NSigmadata.append(N*np.std(d2ydata[-acceleration_window:]))
@@ -85,6 +96,11 @@ def update(frame, s):
 			F1data.append(1)
 		else:
 			F1data.append(F1data[-1])
+		# At least one cycle after F1 is set, set Fmon if the sign of dy changes (end of monotonicity)
+		if(Fmondata[-1] == 0 and F1data[-1] == 1 and F1data[-2] == 1 and np.sign(dydata[len(Fmondata)]) != np.sign(dydata[len(Fmondata)-1])):
+			Fmondata.append(1)
+		else:
+			Fmondata.append(Fmondata[-1])
 
 	# Select the end samples
 	y = ydata[-buffer_len:]
@@ -93,6 +109,7 @@ def update(frame, s):
 	NSigma = NSigmadata[-buffer_len:]
 	MSF = MSFdata[-buffer_len:]
 	F1 = F1data[-buffer_len:]
+	Fmon = Fmondata[-buffer_len:]
 
 	ty = range(len(ydata)-buffer_len, len(ydata))
 	tdy = np.array(range(len(dydata)-buffer_len, len(dydata)))-0.5 #The time of each dy sample is actually 0.5 samples behind y
@@ -100,6 +117,7 @@ def update(frame, s):
 	tNSigma = range(len(NSigmadata)-buffer_len, len(NSigmadata))
 	tMSF = range(len(MSFdata)-buffer_len, len(MSFdata))
 	tF1 = range(len(F1data)-buffer_len, len(F1data))
+	tFmon = range(len(Fmondata)-buffer_len, len(Fmondata))
 
 	# Make sure we have enough samples to plot y data
 	if(len(y) < len(ty)):
@@ -108,7 +126,6 @@ def update(frame, s):
 
 	yheadroom = 100
 	dyheadroom = 10
-	d2yheadroom = 10
 	# Update position plot
 	ln_y.set_data(ty, y)
 	ax_y.set_ylim(np.min(y)-yheadroom, np.max(y)+yheadroom)
@@ -131,7 +148,7 @@ def update(frame, s):
 	
 	# Update acceleration plot
 	ln_d2y.set_data(td2y, d2y)
-	ylim = [np.min([-2*np.max(NSigma), np.min(d2y)-d2yheadroom]),np.max([2*np.max(NSigma), np.max(d2y)+d2yheadroom])]
+	ylim = [np.min([-2*np.max(NSigma), np.min(d2y)]),np.max([2*np.max(NSigma), np.max(d2y)])]
 	# ylim = [np.min([0, np.min(d2y)]),np.max([0, np.max(d2y)])]
 	ax_d2y.set_ylim(ylim)
 	ax_d2y.set_xlim(np.min(td2y), np.max(td2y))
@@ -149,6 +166,7 @@ def update(frame, s):
 		return
 	ln_MSF.set_data(tMSF, MSF)
 	ln_F1.set_data(tF1, F1)
+	ln_Fmon.set_data(tFmon, Fmon)
 	ax_Flags.set_xlim(np.min(tMSF), np.max(tMSF))	
 	return
 
@@ -157,7 +175,7 @@ acceleration_window = 200
 sampling_rate = 48000000/65336
 N = 3.4
 playback = True
-playback_file = "fake_saccade.npy"
+playback_file = "fake_saccade_slow.npy"
 playback_step = 100
 
 timestamps = []
@@ -168,6 +186,8 @@ d2ydata = []
 NSigmadata = []
 MSFdata = []
 F1data = []
+Fmondata = []
+pause = 0
 
 if(not playback):
 	s = serial.Serial("/dev/tty.usbmodem2050316A41501")
@@ -180,6 +200,7 @@ else:
 	NSigmadata = list(np.zeros(buffer_len+acceleration_window))
 	MSFdata = list(np.zeros(buffer_len+acceleration_window))
 	F1data = list(np.zeros(buffer_len+acceleration_window))
+	Fmondata = list(np.zeros(buffer_len+acceleration_window))
 
 ax_y = ax[0]
 ln_y, = ax_y.plot([], [], 'r-')
@@ -201,9 +222,13 @@ ax_d2y.set_ylabel("dV2/d2yt / Vs^-2")
 ax_Flags = ax[3]
 ln_MSF, = ax_Flags.plot([], [], 'r-')
 ln_F1, = ax_Flags.plot([], [], 'r--')
+ln_Fmon, = ax_Flags.plot([], [], 'b--')
 ax_Flags.set_xlabel("Sample")
 ax_Flags.set_ylabel("Flags")
 ax_Flags.set_ylim(-1.5,1.5)
+
+# Setup on click event
+fig.canvas.mpl_connect('button_press_event', onClick)
 
 ani = FuncAnimation(fig, update, fargs=[s])
 plt.show()
