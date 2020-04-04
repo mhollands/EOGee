@@ -10,21 +10,29 @@ import time
 from typing import NamedTuple
 
 def get_data(s):
+	global playback_ptr
 	timestamp = None
 	data = []
+	# If we are streaming data over serial
 	if(type(s) == serial.Serial):
 		timestamp = (time.time(), len(ydata))
 		num_bytes_available = int(np.floor(s.in_waiting/2.0)*2)
 		points_8bit = s.read(num_bytes_available)
 		points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
 		data = points_16bit
+	# IF we are playing back from a file
+	if(type(s) == np.ndarray):
+		timestamp = (time.time(), len(ydata))
+		data = s[playback_ptr:playback_ptr+playback_step]
+		playback_ptr += playback_step
+		if(playback_ptr > len(s)):
+			playback_ptr = 0
 	return [timestamp, data]
 
 def update(frame, s):
 	global ydata
 	# Get data from source
 	[timestamp, data] = get_data(s)
-
 	# Get the latest processed data point
 	y_ptr = len(ydata)
 	dy_ptr = len(dydata)
@@ -98,9 +106,12 @@ def update(frame, s):
 		print("Waiting for y-buffer to fill, {0}/{1}".format(len(y), len(ty)))
 		return
 
+	yheadroom = 100
+	dyheadroom = 10
+	d2yheadroom = 10
 	# Update position plot
 	ln_y.set_data(ty, y)
-	ax_y.set_ylim(np.min(y), np.max(y))
+	ax_y.set_ylim(np.min(y)-yheadroom, np.max(y)+yheadroom)
 	ax_y.set_xlim(np.min(ty), np.max(ty))
 
 	# Make sure we have enough samples to plot dy data
@@ -110,7 +121,7 @@ def update(frame, s):
 
 	# Update velocity plot
 	ln_dy.set_data(tdy, dy)
-	ax_dy.set_ylim(np.min(dy), np.max(dy))
+	ax_dy.set_ylim(np.min(dy)-dyheadroom, np.max(dy)+dyheadroom)
 	ax_dy.set_xlim(np.min(tdy), np.max(tdy))	
 
 	# Make sure we have enough samples to plot dy data
@@ -120,7 +131,7 @@ def update(frame, s):
 	
 	# Update acceleration plot
 	ln_d2y.set_data(td2y, d2y)
-	ylim = [np.min([-2*np.max(NSigma), np.min(d2y)]),np.max([2*np.max(NSigma), np.max(d2y)])]
+	ylim = [np.min([-2*np.max(NSigma), np.min(d2y)-d2yheadroom]),np.max([2*np.max(NSigma), np.max(d2y)+d2yheadroom])]
 	# ylim = [np.min([0, np.min(d2y)]),np.max([0, np.max(d2y)])]
 	ax_d2y.set_ylim(ylim)
 	ax_d2y.set_xlim(np.min(td2y), np.max(td2y))
@@ -141,12 +152,13 @@ def update(frame, s):
 	ax_Flags.set_xlim(np.min(tMSF), np.max(tMSF))	
 	return
 
-buffer_len = 2500
+buffer_len = 1000
 acceleration_window = 200
 sampling_rate = 48000000/65336
 N = 3.4
-
-s = serial.Serial("/dev/tty.usbmodem2050316A41501")
+playback = True
+playback_file = "fake_saccade.npy"
+playback_step = 100
 
 timestamps = []
 fig, ax = plt.subplots(4,1, sharex=True)
@@ -156,6 +168,18 @@ d2ydata = []
 NSigmadata = []
 MSFdata = []
 F1data = []
+
+if(not playback):
+	s = serial.Serial("/dev/tty.usbmodem2050316A41501")
+else:
+	s = np.load(playback_file)
+	playback_ptr = 0
+	ydata = list(np.ones(buffer_len+acceleration_window)*s[0])
+	dydata = list(np.zeros(buffer_len+acceleration_window))
+	d2ydata = list(np.zeros(buffer_len+acceleration_window))
+	NSigmadata = list(np.zeros(buffer_len+acceleration_window))
+	MSFdata = list(np.zeros(buffer_len+acceleration_window))
+	F1data = list(np.zeros(buffer_len+acceleration_window))
 
 ax_y = ax[0]
 ln_y, = ax_y.plot([], [], 'r-')
