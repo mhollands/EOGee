@@ -65,13 +65,14 @@ def update(frame, s):
 
 	# For each new sample, update dy
 	while(len(d2ydata) < len(ydata) - 1):
-		# If this is the first sample we can't calculate d2y or NSigma or MSF or F1 or Fmon so put 0
+		# If this is the first sample we can't calculate d2y or NSigma or MSF or F1 or Fmon or F2 so put 0
 		if(len(d2ydata) == 0):
 			d2ydata.append(0)
 			NSigmadata.append(0)
 			MSFdata.append(0)
 			F1data.append(0)
 			Fmondata.append(0)
+			F2data.append(0)
 			continue
 
 		# Calculate d2y
@@ -82,6 +83,7 @@ def update(frame, s):
 			MSFdata.append(0)
 			F1data.append(0)
 			Fmondata.append(0)
+			F2data.append(0)
 			continue
 		# Calcualte NSigma as N times the std of the previous samples in accerleation window
 		NSigmadata.append(N*np.std(d2ydata[-acceleration_window:]))
@@ -101,6 +103,11 @@ def update(frame, s):
 			Fmondata.append(1)
 		else:
 			Fmondata.append(Fmondata[-1])
+		# After F1 is set, when we cross the opposite NSigma line, set F2
+		if(MSFdata[-1] != 0 and F1data[-1] != 0 and F2data[-1] == 0 and np.sign(MSFdata[-1])*d2ydata[-1] < -NSigmadata[-1]):
+			F2data.append(1)
+		else:
+			F2data.append(F2data[-1])
 
 	# Select the end samples
 	y = ydata[-buffer_len:]
@@ -110,6 +117,7 @@ def update(frame, s):
 	MSF = MSFdata[-buffer_len:]
 	F1 = F1data[-buffer_len:]
 	Fmon = Fmondata[-buffer_len:]
+	F2 = F2data[-buffer_len:]
 
 	ty = range(len(ydata)-buffer_len, len(ydata))
 	tdy = np.array(range(len(dydata)-buffer_len, len(dydata)))-0.5 #The time of each dy sample is actually 0.5 samples behind y
@@ -118,6 +126,7 @@ def update(frame, s):
 	tMSF = range(len(MSFdata)-buffer_len, len(MSFdata))
 	tF1 = range(len(F1data)-buffer_len, len(F1data))
 	tFmon = range(len(Fmondata)-buffer_len, len(Fmondata))
+	tF2 = range(len(F2data)-buffer_len, len(F2data))
 
 	# Make sure we have enough samples to plot y data
 	if(len(y) < len(ty)):
@@ -167,6 +176,7 @@ def update(frame, s):
 	ln_MSF.set_data(tMSF, MSF)
 	ln_F1.set_data(tF1, F1)
 	ln_Fmon.set_data(tFmon, Fmon)
+	ln_F2.set_data(tF2, F2)
 	ax_Flags.set_xlim(np.min(tMSF), np.max(tMSF))	
 	return
 
@@ -187,6 +197,7 @@ NSigmadata = []
 MSFdata = []
 F1data = []
 Fmondata = []
+F2data = []
 pause = 0
 
 if(not playback):
@@ -194,13 +205,14 @@ if(not playback):
 else:
 	s = np.load(playback_file)
 	playback_ptr = 0
-	ydata = list(np.ones(buffer_len+acceleration_window)*s[0])
+	ydata = list(np.ones(buffer_len+acceleration_window)*s[playback_ptr])
 	dydata = list(np.zeros(buffer_len+acceleration_window))
 	d2ydata = list(np.zeros(buffer_len+acceleration_window))
 	NSigmadata = list(np.zeros(buffer_len+acceleration_window))
 	MSFdata = list(np.zeros(buffer_len+acceleration_window))
 	F1data = list(np.zeros(buffer_len+acceleration_window))
 	Fmondata = list(np.zeros(buffer_len+acceleration_window))
+	F2data = list(np.zeros(buffer_len+acceleration_window))
 
 ax_y = ax[0]
 ln_y, = ax_y.plot([], [], 'r-')
@@ -223,6 +235,7 @@ ax_Flags = ax[3]
 ln_MSF, = ax_Flags.plot([], [], 'r-')
 ln_F1, = ax_Flags.plot([], [], 'r--')
 ln_Fmon, = ax_Flags.plot([], [], 'b--')
+ln_F2, = ax_Flags.plot([], [], 'g--')
 ax_Flags.set_xlabel("Sample")
 ax_Flags.set_ylabel("Flags")
 ax_Flags.set_ylim(-1.5,1.5)
