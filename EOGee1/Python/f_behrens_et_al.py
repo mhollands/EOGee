@@ -48,27 +48,35 @@ def update(frame, s):
 
 	# For each new sample, update dy
 	while(len(d2ydata) < len(ydata) - 1):
-		# If this is the first sample we can't calculate d2y or NSigma or MSF so put 0
+		# If this is the first sample we can't calculate d2y or NSigma or MSF or F1 so put 0
 		if(len(d2ydata) == 0):
 			d2ydata.append(0)
 			NSigmadata.append(0)
 			MSFdata.append(0)
+			F1data.append(0)
 			continue
+
 		# Calculate d2y
 		d2ydata.append(ydata[len(d2ydata)+1] - 2*ydata[len(d2ydata)] + ydata[len(d2ydata)-1])
 		# If we are before the acceleration window, we cannot calculate NSigma so we cannot calculate MSF, put 0
 		if(len(d2ydata) < acceleration_window):
 			NSigmadata.append(0)
 			MSFdata.append(0)
+			F1data.append(0)
 			continue
 		# Calcualte NSigma as N times the std of the previous samples in accerleation window
 		NSigmadata.append(N*np.std(d2ydata[-acceleration_window:]))
 		# If MSF is 0 and d2y crossed the NSigma threshold, set MSF to 1 or -1
 		if(MSFdata[-1] == 0 and np.abs(d2ydata[-1]) > np.abs(NSigmadata[-1])):
 			MSFdata.append(np.sign(d2ydata[-1]))
-			continue
-		# By default MSF should retain state
-		MSFdata.append(MSFdata[-1])
+		else:
+			# By default MSF should retain state
+			MSFdata.append(MSFdata[-1])
+		# If we are in a saccade and F1 crosses NSigma line
+		if(MSFdata[-1] != 0 and F1data[-1] == 0 and np.sign(MSFdata[-1])*d2ydata[-1] < NSigmadata[-1]):
+			F1data.append(1)
+		else:
+			F1data.append(F1data[-1])
 
 	# Select the end samples
 	y = ydata[-buffer_len:]
@@ -76,12 +84,14 @@ def update(frame, s):
 	d2y = d2ydata[-buffer_len:]
 	NSigma = NSigmadata[-buffer_len:]
 	MSF = MSFdata[-buffer_len:]
+	F1 = F1data[-buffer_len:]
 
 	ty = range(len(ydata)-buffer_len, len(ydata))
 	tdy = np.array(range(len(dydata)-buffer_len, len(dydata)))-0.5 #The time of each dy sample is actually 0.5 samples behind y
 	td2y = range(len(d2ydata)-buffer_len, len(d2ydata))
 	tNSigma = range(len(NSigmadata)-buffer_len, len(NSigmadata))
 	tMSF = range(len(MSFdata)-buffer_len, len(MSFdata))
+	tF1 = range(len(F1data)-buffer_len, len(F1data))
 
 	# Make sure we have enough samples to plot y data
 	if(len(y) < len(ty)):
@@ -127,16 +137,16 @@ def update(frame, s):
 		print("Waiting for MSF-buffer to fill, {0}/{1}".format(len(MSF), len(tMSF)))
 		return
 	ln_MSF.set_data(tMSF, MSF)
-	ax_MSF.set_ylim(-1.5,1.5)
-	ax_MSF.set_xlim(np.min(tMSF), np.max(tMSF))	
+	ln_F1.set_data(tF1, F1)
+	ax_Flags.set_xlim(np.min(tMSF), np.max(tMSF))	
 	return
-
-s = serial.Serial("/dev/tty.usbmodem2050316A41501")
 
 buffer_len = 2500
 acceleration_window = 200
 sampling_rate = 48000000/65336
 N = 3.4
+
+s = serial.Serial("/dev/tty.usbmodem2050316A41501")
 
 timestamps = []
 fig, ax = plt.subplots(4,1, sharex=True)
@@ -145,6 +155,7 @@ dydata = []
 d2ydata = []
 NSigmadata = []
 MSFdata = []
+F1data = []
 
 ax_y = ax[0]
 ln_y, = ax_y.plot([], [], 'r-')
@@ -163,11 +174,12 @@ ln_nsigma_n, = ax_d2y.plot([], [], 'b--')
 ax_d2y.set_xlabel("Sample")
 ax_d2y.set_ylabel("dV2/d2yt / Vs^-2")
 
-ax_MSF = ax[3]
-ln_MSF, = ax_MSF.plot([], [], 'r-')
-ln_MSF, = ax_MSF.plot([], [], 'b--')
-ax_MSF.set_xlabel("Sample")
-ax_MSF.set_ylabel("MSF")
+ax_Flags = ax[3]
+ln_MSF, = ax_Flags.plot([], [], 'r-')
+ln_F1, = ax_Flags.plot([], [], 'r--')
+ax_Flags.set_xlabel("Sample")
+ax_Flags.set_ylabel("Flags")
+ax_Flags.set_ylim(-1.5,1.5)
 
 ani = FuncAnimation(fig, update, fargs=[s])
 plt.show()
