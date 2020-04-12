@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 import scipy.signal
+import scipy.stats
+import time
 
 s = serial.Serial("/dev/tty.usbmodem2050316A41501")
 
@@ -39,6 +41,7 @@ def update(frame):
 	# 	ydata = ydata[-buffer_len:]
 
 	volts = np.array(ydata) * 3.3 / np.power(2,12)
+	volts = ydata
 	volts_filt = scipy.signal.lfilter(filt_b, filt_a, volts)
 
 	volts = volts[-buffer_len:]
@@ -60,7 +63,7 @@ def update(frame):
 	return
 
 filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
-plot_filter(filt_b, filt_a, sampling_rate)
+# plot_filter(filt_b, filt_a, sampling_rate)
 
 fig, [ax_t, ax_f] = plt.subplots(2,1)
 ydata = []
@@ -78,3 +81,37 @@ ax_f.set_ylabel("Power")
 
 ani = FuncAnimation(fig, update, init_func=init)
 plt.show()
+
+noise_range = ydata[1000: min(45000, len(ydata))]
+mean = np.mean(noise_range)
+std = np.std(noise_range)
+pk = np.max(noise_range)
+tr = np.min(noise_range)
+print("Mean: {0}".format(mean))
+print("Range: {0}-{1} = {2} over {3} samples".format(pk, tr, pk-tr, len(noise_range)))
+print("Std: {0}".format(std))
+biggest_spike = np.max([pk-mean, mean-tr])
+pdf = scipy.stats.norm(0, std).cdf(-biggest_spike)
+print("Biggest spike: {0}".format(biggest_spike))
+print("Probability of this spike or worse: {0}".format(pdf))
+
+ydata_filt = volts_filt = scipy.signal.lfilter(filt_b, filt_a, ydata)
+noise_range_filt = ydata_filt[1000: min(45000, len(ydata))]
+mean = np.mean(noise_range_filt)
+std = np.std(noise_range_filt)
+pk = np.max(noise_range_filt)
+tr = np.min(noise_range_filt)
+print("")
+print("Filtered Mean: {0}".format(mean))
+print("Filtered Range: {0}-{1} = {2} over {3} samples".format(pk, tr, pk-tr, len(noise_range_filt)))
+print("Filtered Std: {0}".format(std))
+biggest_spike = np.max([pk-mean, mean-tr])
+pdf = scipy.stats.norm(0, std).cdf(-biggest_spike)
+print("Filtered Biggest spike: {0}".format(biggest_spike))
+print("Filtered Probability of this spike or worse: {0}".format(pdf))
+
+if(len(ydata) > 0):
+	save_data = {"ydata": ydata}
+	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
+	np.save(filename, save_data)
+	print("Saved as {0}".format(filename))
