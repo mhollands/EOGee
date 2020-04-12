@@ -56,6 +56,9 @@ dkms.conf
 *.metadata*
 *.list
 
+#Kicad
+*.kicad_pcb-bak
+
 #Others
 .DS_Store
 */.DS_Store

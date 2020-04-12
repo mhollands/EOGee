@@ -1,6 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
 ADC.ExternalTrigConv=ADC_SOFTWARE_START
-ADC.IPParameters=ExternalTrigConv
+ADC.IPParameters=ExternalTrigConv,SamplingTime
+ADC.SamplingTime=ADC_SAMPLETIME_1CYCLE_5
 File.Version=6
 GPIO.groupedBy=Group By Peripherals
 KeepUserPlacement=false
