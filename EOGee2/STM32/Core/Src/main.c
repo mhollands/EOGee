@@ -93,15 +93,22 @@ int main(void)
   MX_DAC_Init();
   MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
-
+  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
  
- 
+  uint32_t d = 0;
+  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	  HAL_Delay(10);
+	  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+	  HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
+	  HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, d);
+	  d+=10;
+
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
