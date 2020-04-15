@@ -44,14 +44,17 @@
 /* Private variables ---------------------------------------------------------*/
 DAC_HandleTypeDef hdac;
 
-/* USER CODE BEGIN PV */
+SPI_HandleTypeDef hspi1;
 
+/* USER CODE BEGIN PV */
+HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance);
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DAC_Init(void);
+static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -92,22 +95,24 @@ int main(void)
   MX_GPIO_Init();
   MX_DAC_Init();
   MX_USB_DEVICE_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
  
-  uint32_t d = 0;
-  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
+  Set_MCP41010_Resistance(127);
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t d = 0;
+  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
   while (1)
   {
-	  HAL_Delay(10);
+	  HAL_Delay(100);
 	  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
 	  HAL_GPIO_TogglePin(LED2_GPIO_Port, LED2_Pin);
 	  HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, d);
-	  d+=10;
+	  d+=100;
 
     /* USER CODE END WHILE */
 
@@ -195,6 +200,46 @@ static void MX_DAC_Init(void)
 }
 
 /**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_16BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_HARD_OUTPUT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 7;
+  hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -206,6 +251,7 @@ static void MX_GPIO_Init(void)
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, LED1_Pin|LED2_Pin, GPIO_PIN_RESET);
@@ -220,6 +266,14 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance)
+{
+	uint8_t data[2];
+	data[1] = 0x11;
+	data[0] = resistance;
+	return HAL_SPI_Transmit(&hspi1, (void *) &data, 1, HAL_MAX_DELAY);
+}
 
 /* USER CODE END 4 */
 
