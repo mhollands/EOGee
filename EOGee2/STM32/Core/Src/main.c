@@ -65,6 +65,7 @@ static void MX_ADC_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance);
+void CenterDAC();
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -111,16 +112,16 @@ int main(void)
   CDC_Transmit_FS((uint8_t*)"Hello\n\r", 7);
   /* USER CODE END 2 */
  
- 
-
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  //start timer
-  HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, 2048);
-  HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
   HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
+  HAL_Delay(1000);
+  CenterDAC();
+  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+  HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
   buffer_pointer = 0;
   uint8_t i = 0;
+
   while (1)
   {
     /* USER CODE END WHILE */
@@ -417,6 +418,46 @@ HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance)
 	data[1] = 0x11;
 	data[0] = resistance;
 	return HAL_SPI_Transmit(&hspi1, (void *) &data, 1, HAL_MAX_DELAY);
+}
+
+void CenterDAC()
+{
+	CDC_Transmit_FS((uint8_t*)"Calibrate\n\r", 11);
+	//Set to mid gain
+	Set_MCP41010_Resistance(128);
+
+	uint32_t dac = 2048;
+	HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac);
+
+	uint32_t target = 2048;
+	uint32_t range = 10;
+	uint32_t sample = 0;
+	uint8_t buffer[50];
+	while(sample < target - range || sample > target + range)
+	{
+		int l = sprintf(buffer, "%d %d\n\r", dac, sample);
+		CDC_Transmit_FS(buffer, l);
+		HAL_ADC_Start(&hadc);
+		sample = HAL_ADC_GetValue(&hadc);
+		if(sample > target+range)
+		{
+			if(dac == 0)
+			{
+				return;
+			}
+			dac--;
+		}
+		if(sample < target-range)
+		{
+			if(dac == 4095)
+			{
+				return;
+			}
+			dac++;
+		}
+		HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac);
+		HAL_Delay(1);
+	}
 }
 
 /* USER CODE BEGIN 4 */
