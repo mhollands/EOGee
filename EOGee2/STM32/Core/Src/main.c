@@ -55,7 +55,7 @@ TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
 #define BUFFER_LEN 10
-uint16_t buffer[BUFFER_LEN];
+uint16_t buffer[BUFFER_LEN*2];
 volatile uint8_t buffer_pointer;
 volatile int correcting = 0;
 volatile uint16_t dac_code = 0;
@@ -139,7 +139,7 @@ int main(void)
 		  // Toggle LED
 		  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
 		  // Send data buffer over usb
-		  CDC_Transmit_FS((void*)buffer, 2*BUFFER_LEN);
+		  CDC_Transmit_FS((void*)buffer, 2*2*BUFFER_LEN);
 		  // Reset data buffer
 		  buffer_pointer = 0;
 	  }
@@ -444,7 +444,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	// Put data in buffer
 	if(buffer_pointer < BUFFER_LEN)
 	{
-		buffer[buffer_pointer] = (uint16_t) sample;
+		buffer[buffer_pointer] = (0x8000 | (uint16_t) sample);
+		buffer[buffer_pointer+BUFFER_LEN] = (0x4000 | dac_code);
 		buffer_pointer++;
 	}
 	else

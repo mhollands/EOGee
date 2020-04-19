@@ -6,10 +6,9 @@ import scipy.signal
 import scipy.stats
 import time
 
-# s = serial.Serial("/dev/tty.usbmodem2050316A41501")
 s = serial.Serial("/dev/tty.usbmodem2073358838301")
 
-buffer_len = 10000
+buffer_len = 1000
 sampling_rate = 48000000/65336
 
 def plot_filter(b,a,fs):
@@ -37,25 +36,32 @@ def update(frame):
 	num_bytes_available = int(np.floor(s.in_waiting/2.0)*2)
 	points_8bit = s.read(num_bytes_available)
 	points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
-	[ydata.append(x) for x in points_16bit]
+
+	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
+	[dacdata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x4]
 	# if(len(ydata) > buffer_len):
 	# 	ydata = ydata[-buffer_len:]
 
-	volts = np.array(ydata) * 3.3 / np.power(2,12)
-	volts = ydata
-	volts_filt = scipy.signal.lfilter(filt_b, filt_a, volts)
+	y = ydata
+	y_filt = scipy.signal.lfilter(filt_b, filt_a, y)
 
-	volts = volts[-buffer_len:]
-	volts_filt = volts_filt[-buffer_len:]
+	d = dacdata[-buffer_len:]
 
-	ax_t.set_ylim(np.min(volts), np.max(volts))
-	ax_t.set_xlim(0, len(volts))
-	ln_t.set_data(range(len(volts)), volts)
-	ln_tf.set_data(range(len(volts_filt)), volts_filt)
+	y = y[-buffer_len:]
+	y_filt = y_filt[-buffer_len:]
+
+	ax_t.set_ylim(np.min(y), np.max(y))
+	ax_t.set_xlim(0, len(y))
+	ln_t.set_data(range(len(y)), y)
+	ln_tf.set_data(range(len(y_filt)), y_filt)
+
+	ax_d.set_ylim(0, 4096)
+	ax_d.set_xlim(0, len(d))
+	ln_d.set_data(range(len(d)), d)
 
 	# Take fourier transform of data with mean value removed
-	fdata = np.abs(np.fft.fft(volts - np.mean(volts)))
-	fdata_filt = np.abs(np.fft.fft(volts_filt - np.mean(volts_filt)))
+	fdata = np.abs(np.fft.fft(y - np.mean(y)))
+	fdata_filt = np.abs(np.fft.fft(y - np.mean(y)))
 	freqs = np.arange(0,int(len(fdata)/2)) * sampling_rate / len(fdata)
 	ax_f.set_ylim(np.min([fdata, fdata_filt]), np.max([fdata, fdata_filt]))
 	ax_f.set_xlim(0, np.max(freqs))
@@ -66,16 +72,21 @@ def update(frame):
 filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
 # plot_filter(filt_b, filt_a, sampling_rate)
 
-fig, [ax_t, ax_f] = plt.subplots(2,1)
+fig, [ax_t, ax_d, ax_f] = plt.subplots(3,1)
 ydata = []
+dacdata = []
 fdata = []
 ln_t, = ax_t.plot([], [], 'r-')
 ln_tf, = ax_t.plot([], [], 'b-')
+ln_d, = ax_d.plot([], [], 'r-')
 ln_f, = ax_f.plot([], [], 'r-')
 ln_ff, = ax_f.plot([], [], 'b-')
 
 ax_t.set_xlabel("Sample")
-ax_t.set_ylabel("Voltage / V")
+ax_t.set_ylabel("ADC Code")
+
+ax_d.set_xlabel("Sample")
+ax_d.set_ylabel("DAC Code")
 
 ax_f.set_xlabel("Frequency /Hz")
 ax_f.set_ylabel("Power")
