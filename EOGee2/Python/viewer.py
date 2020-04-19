@@ -61,7 +61,7 @@ def update(frame):
 
 	# Take fourier transform of data with mean value removed
 	fdata = np.abs(np.fft.fft(y - np.mean(y)))
-	fdata_filt = np.abs(np.fft.fft(y - np.mean(y)))
+	fdata_filt = np.abs(np.fft.fft(y_filt - np.mean(y_filt)))
 	freqs = np.arange(0,int(len(fdata)/2)) * sampling_rate / len(fdata)
 	ax_f.set_ylim(np.min([fdata, fdata_filt]), np.max([fdata, fdata_filt]))
 	ax_f.set_xlim(0, np.max(freqs))
