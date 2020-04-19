@@ -36,6 +36,7 @@
 /* USER CODE BEGIN PD */
 #define ADC_TARGET 2048
 #define ADC_TARGET_RANGE 10
+#define ADC_CORRECTION_RANGE 1500
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -69,7 +70,6 @@ static void MX_ADC_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance);
-void CenterDAC(uint16_t, uint16_t);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -118,21 +118,22 @@ int main(void)
  
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
   HAL_Delay(1000);
-  CenterDAC(ADC_TARGET,ADC_TARGET_RANGE);
-  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-  HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
+  // Start DAC
+  dac_code = ADC_TARGET;
+  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
+  HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
+  correcting = 1;
+
+  // Start conversions
   buffer_pointer = 0;
-  correcting = 0;
-  uint8_t i = 0;
+  HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
 
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  i += 1;
 	  if(buffer_pointer == BUFFER_LEN)
 	  {
 		  // Toggle LED
@@ -428,47 +429,6 @@ HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance)
 	return HAL_SPI_Transmit(&hspi1, (void *) &data, 1, HAL_MAX_DELAY);
 }
 
-void CenterDAC(uint16_t target, uint16_t range)
-{
-	CDC_Transmit_FS((uint8_t*)"Calibrate\n\r", 11);
-	//Set to mid gain
-	Set_MCP41010_Resistance(128);
-
-	// Set DAC to target value
-	dac_code = ADC_TARGET;
-	HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
-
-	uint32_t sample = 0;
-	char buffer[50];
-	while(sample < target - range || sample > target + range)
-	{
-		int l = sprintf(buffer, "%lu %lu\n\r", dac_code, sample);
-		CDC_Transmit_FS((uint8_t *)buffer, l);
-		// Read the ADC sample
-		HAL_ADC_Start(&hadc);
-		sample = HAL_ADC_GetValue(&hadc);
-		// Adjust DAC
-		if(sample > target+range)
-		{
-			if(dac_code == 0)
-			{
-				return;
-			}
-			dac_code--;
-		}
-		if(sample < target-range)
-		{
-			if(dac_code == 4095)
-			{
-				return;
-			}
-			dac_code++;
-		}
-		HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
-		HAL_Delay(1);
-	}
-}
-
 /* USER CODE BEGIN 4 */
 /**
   * @brief  Conversion complete callback in non blocking mode
@@ -518,7 +478,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	}
 	else
 	{
-		if(sample > 3500 || sample < 500)
+		if(sample > ADC_TARGET + ADC_CORRECTION_RANGE || sample < ADC_TARGET-ADC_CORRECTION_RANGE)
 		{
 			correcting = 1;
 		}
