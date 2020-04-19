@@ -34,6 +34,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
+#define ADC_TARGET 2048
+#define ADC_TARGET_RANGE 10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,6 +56,8 @@ TIM_HandleTypeDef htim1;
 #define BUFFER_LEN 10
 uint16_t buffer[BUFFER_LEN];
 volatile uint8_t buffer_pointer;
+volatile int correcting = 0;
+volatile uint16_t dac_code = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -65,7 +69,7 @@ static void MX_ADC_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance);
-void CenterDAC();
+void CenterDAC(uint16_t, uint16_t);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -116,10 +120,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
   HAL_Delay(1000);
-  CenterDAC();
+  CenterDAC(ADC_TARGET,ADC_TARGET_RANGE);
   HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
   HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
   buffer_pointer = 0;
+  correcting = 0;
   uint8_t i = 0;
 
   while (1)
@@ -130,8 +135,11 @@ int main(void)
 	  i += 1;
 	  if(buffer_pointer == BUFFER_LEN)
 	  {
+		  // Toggle LED
 		  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
+		  // Send data buffer over usb
 		  CDC_Transmit_FS((void*)buffer, 2*BUFFER_LEN);
+		  // Reset data buffer
 		  buffer_pointer = 0;
 	  }
   }
@@ -420,42 +428,43 @@ HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance)
 	return HAL_SPI_Transmit(&hspi1, (void *) &data, 1, HAL_MAX_DELAY);
 }
 
-void CenterDAC()
+void CenterDAC(uint16_t target, uint16_t range)
 {
 	CDC_Transmit_FS((uint8_t*)"Calibrate\n\r", 11);
 	//Set to mid gain
 	Set_MCP41010_Resistance(128);
 
-	uint32_t dac = 2048;
-	HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac);
+	// Set DAC to target value
+	dac_code = ADC_TARGET;
+	HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
 
-	uint32_t target = 2048;
-	uint32_t range = 10;
 	uint32_t sample = 0;
-	uint8_t buffer[50];
+	char buffer[50];
 	while(sample < target - range || sample > target + range)
 	{
-		int l = sprintf(buffer, "%d %d\n\r", dac, sample);
-		CDC_Transmit_FS(buffer, l);
+		int l = sprintf(buffer, "%lu %lu\n\r", dac_code, sample);
+		CDC_Transmit_FS((uint8_t *)buffer, l);
+		// Read the ADC sample
 		HAL_ADC_Start(&hadc);
 		sample = HAL_ADC_GetValue(&hadc);
+		// Adjust DAC
 		if(sample > target+range)
 		{
-			if(dac == 0)
+			if(dac_code == 0)
 			{
 				return;
 			}
-			dac--;
+			dac_code--;
 		}
 		if(sample < target-range)
 		{
-			if(dac == 4095)
+			if(dac_code == 4095)
 			{
 				return;
 			}
-			dac++;
+			dac_code++;
 		}
-		HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac);
+		HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
 		HAL_Delay(1);
 	}
 }
@@ -471,6 +480,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	HAL_ADC_Stop_IT(hadc);
 
 	uint32_t sample = HAL_ADC_GetValue(hadc);
+
+	// Put data in buffer
 	if(buffer_pointer < BUFFER_LEN)
 	{
 		buffer[buffer_pointer] = (uint16_t) sample;
@@ -478,7 +489,39 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	}
 	else
 	{
+		// If no space in buffer, turn on LED as warning
 		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+	}
+
+	// Adjust DAC to move ADC towards target
+	if(correcting == 1)
+	{
+		if(sample > ADC_TARGET+ADC_TARGET_RANGE)
+		{
+			if(dac_code > 0)
+			{
+				dac_code -= 1;
+			}
+		}
+		else if(sample < ADC_TARGET-ADC_TARGET_RANGE)
+		{
+			if(dac_code < 4095)
+			{
+				dac_code += 1;
+			}
+		}
+		else
+		{
+			correcting = 0;
+		}
+		HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
+	}
+	else
+	{
+		if(sample > 3500 || sample < 500)
+		{
+			correcting = 1;
+		}
 	}
 }
 
