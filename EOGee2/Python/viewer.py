@@ -5,11 +5,19 @@ from matplotlib.animation import FuncAnimation
 import scipy.signal
 import scipy.stats
 import time
+import glob
 
-s = serial.Serial("/dev/tty.usbmodem2073358838301")
-
-buffer_len = 1000
+buffer_len = 10000
 sampling_rate = 48000000/65336
+
+def connect_to_usb():
+	available_devices = []
+	print("Looking for usb device...")
+	while(len(available_devices) < 1):
+		available_devices = glob.glob("/dev/tty.usbmodem*")
+	print("Connecting to {0}".format(available_devices[0]))
+	s = serial.Serial(available_devices[0])
+	return s
 
 def plot_filter(b,a,fs):
 	freq, h = scipy.signal.freqz(b, a, fs=fs)
@@ -32,15 +40,21 @@ def init():
 def update(frame):
 	global ydata
 	global fdata
+	global s
 
-	num_bytes_available = int(np.floor(s.in_waiting/2.0)*2)
-	points_8bit = s.read(num_bytes_available)
+	try:
+		num_bytes_available = int(np.floor(s.in_waiting/2.0)*2)
+		points_8bit = s.read(num_bytes_available)
+	except:
+  		print("Unable to communicate with device...")
+  		s = connect_to_usb()
+  		return
+
+
 	points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
 
 	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
 	[dacdata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x4]
-	# if(len(ydata) > buffer_len):
-	# 	ydata = ydata[-buffer_len:]
 
 	y = ydata
 	y_filt = scipy.signal.lfilter(filt_b, filt_a, y)
@@ -68,6 +82,8 @@ def update(frame):
 	ln_f.set_data(freqs, fdata[0:int(len(fdata)/2)])
 	ln_ff.set_data(freqs, fdata_filt[0:int(len(fdata)/2)])
 	return
+
+s = connect_to_usb()
 
 filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
 # plot_filter(filt_b, filt_a, sampling_rate)
