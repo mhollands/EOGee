@@ -152,7 +152,7 @@ def update(frame, s):
 		print("Waiting for y-buffer to fill, {0}/{1}".format(len(y), len(ty)))
 		return
 
-	yheadroom = 100
+	yheadroom = 0
 	dyheadroom = 10
 	# Update position plot
 	ln_y.set_data(ty, y)
@@ -200,7 +200,7 @@ def update(frame, s):
 	ax_Flags.set_xlim(np.min(tMSF), np.max(tMSF))	
 	return
 
-buffer_len = 1000
+buffer_len = 2000
 acceleration_window = 200
 sampling_rate = 48000000/65336
 N = 3.4
@@ -222,7 +222,8 @@ F3data = []
 pause = 0
 
 if(not playback):
-	s = serial.Serial("/dev/tty.usbmodem2050316A41501")
+	# s = serial.Serial("/dev/tty.usbmodem2050316A41501")
+	s = serial.Serial("/dev/tty.usbmodem2073358838301")
 else:
 	s = np.load(playback_file)
 	playback_ptr = 0

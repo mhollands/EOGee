@@ -225,8 +225,13 @@ if(not playback):
 	# s = serial.Serial("/dev/tty.usbmodem2050316A41501")
 	s = serial.Serial("/dev/tty.usbmodem2073358838301")
 else:
+	import scipy.signal
+	filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
 	s = np.array(np.load(playback_file, allow_pickle=True).item()["ydata"])
-	playback_ptr = 190000
+	s = scipy.signal.lfilter(filt_b, filt_a, s)
+	smoothing = 150;
+	s = np.convolve(s, np.ones((smoothing,))/smoothing, mode="valid")[::5]
+	playback_ptr = int(190000/5)
 	ydata = list(np.ones(buffer_len+acceleration_window)*s[playback_ptr])
 	dydata = list(np.zeros(buffer_len+acceleration_window))
 	d2ydata = list(np.zeros(buffer_len+acceleration_window))

@@ -113,12 +113,13 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   HAL_Delay(3000);
-  CDC_Transmit_FS((uint8_t*)"Hello\n\r", 7);
+  //CDC_Transmit_FS((uint8_t*)"Hello\n\r", 7);
   /* USER CODE END 2 */
  
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   HAL_Delay(1000);
+  Set_MCP41010_Resistance(255);
   // Start DAC
   dac_code = ADC_TARGET;
   HAL_DAC_Start(&hdac, DAC_CHANNEL_2);

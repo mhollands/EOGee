@@ -7,8 +7,9 @@ import scipy.stats
 import time
 import glob
 
-buffer_len = 10000
+buffer_len = 2000
 sampling_rate = 48000000/65336
+adc_per_dac = 22;
 
 def connect_to_usb():
 	available_devices = []
@@ -56,7 +57,8 @@ def update(frame):
 	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
 	[dacdata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x4]
 
-	y = ydata
+	y = ydata - (np.array(dacdata) - 2048)*adc_per_dac
+	# y = np.convolve(y, np.ones(26)/26, mode="valid")
 	y_filt = scipy.signal.lfilter(filt_b, filt_a, y)
 
 	d = dacdata[-buffer_len:]
@@ -69,9 +71,16 @@ def update(frame):
 	ln_t.set_data(range(len(y)), y)
 	ln_tf.set_data(range(len(y_filt)), y_filt)
 
+	# ddd = np.diff(np.diff(d))
+	# # [ax_d.lines[i].remove() for i in range(1,len(ax_d.lines))]
+	# ax_d.lines.clear()
+	# for i in range(1,len(ddd)):
+	# 	if(ddd[i] != 0):
+	# 		ax_d.axvline(i)
 	ax_d.set_ylim(0, 4096)
 	ax_d.set_xlim(0, len(d))
 	ln_d.set_data(range(len(d)), d)
+	# ax_d.plot(range(len(d)), d, c='red')
 
 	# Take fourier transform of data with mean value removed
 	fdata = np.abs(np.fft.fft(y - np.mean(y)))
@@ -139,7 +148,7 @@ print("Filtered Biggest spike: {0}".format(biggest_spike))
 print("Filtered Probability of this spike or worse: {0}".format(pdf))
 
 if(len(ydata) > 0):
-	save_data = {"ydata": ydata}
+	save_data = {"ydata": ydata, "dacdata": dacdata}
 	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
 	np.save(filename, save_data)
 	print("Saved as {0}".format(filename))
