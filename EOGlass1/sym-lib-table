@@ -1,0 +1,5 @@
+(sym_lib_table
+  (lib (name EOGee-rescue)(type Legacy)(uri ${KIPRJMOD}/EOGee-rescue.lib)(options "")(descr ""))
+  (lib (name DiodesInc)(type Legacy)(uri ${KIPRJMOD}/Library/DiodesInc.lib)(options "")(descr ""))
+  (lib (name 2020-03-25_04-45-55)(type Legacy)(uri ${KIPRJMOD}/Library/ul_OP2177ARZREEL/KiCAD/2020-03-25_04-45-55/2020-03-25_04-45-55.lib)(options "")(descr ""))
+)
