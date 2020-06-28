@@ -123,7 +123,6 @@ int main(void)
   //CDC_Transmit_FS((uint8_t*)"Hello\n\r", 7);
   /* USER CODE END 2 */
  
- 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -140,8 +139,9 @@ int main(void)
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *) electrode_sense_waveform, 100, DAC_ALIGN_12B_R);
   HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_1);
 
-  // Start conversions
+  // Start EOG ADC conversions
   buffer_pointer = 0;
+  HAL_ADC_Start_IT(&hadc);
   HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
 
   while (1)
@@ -233,8 +233,8 @@ static void MX_ADC_Init(void)
   hadc.Init.LowPowerAutoPowerOff = DISABLE;
   hadc.Init.ContinuousConvMode = DISABLE;
   hadc.Init.DiscontinuousConvMode = DISABLE;
-  hadc.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
+  hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
   hadc.Init.DMAContinuousRequests = DISABLE;
   hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   if (HAL_ADC_Init(&hadc) != HAL_OK)
@@ -533,8 +533,6 @@ HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance)
   */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	HAL_ADC_Stop_IT(hadc);
-
 	uint32_t sample = HAL_ADC_GetValue(hadc);
 
 	// Put data in buffer
@@ -580,16 +578,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 			correcting = 1;
 		}
 	}
-}
-
-/**
-  * @brief  Output Compare callback in non-blocking mode
-  * @param  htim TIM OC handle
-  * @retval None
-  */
-void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
-{
-	HAL_ADC_Start_IT(&hadc);
 }
 
 /* USER CODE END 4 */
