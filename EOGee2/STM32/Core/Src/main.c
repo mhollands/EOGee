@@ -49,6 +49,7 @@ ADC_HandleTypeDef hadc;
 
 DAC_HandleTypeDef hdac;
 DMA_HandleTypeDef hdma_dac_ch1;
+DMA_HandleTypeDef hdma_dac_ch2;
 
 SPI_HandleTypeDef hspi1;
 
@@ -123,6 +124,7 @@ int main(void)
   //CDC_Transmit_FS((uint8_t*)"Hello\n\r", 7);
   /* USER CODE END 2 */
  
+ 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -131,17 +133,20 @@ int main(void)
 
   // Start feedback DAC
   dac_code = ADC_TARGET;
-  HAL_DAC_Start(&hdac, DAC_CHANNEL_2);
-  HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_2, (uint32_t *) &dac_code, 1, DAC_ALIGN_12B_R);
   correcting = 1;
 
   // Start electrode sense dac
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *) electrode_sense_waveform, 100, DAC_ALIGN_12B_R);
-  HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_1);
 
   // Start EOG ADC conversions
   buffer_pointer = 0;
   HAL_ADC_Start_IT(&hadc);
+
+  // Start timer 2 which triggers electrode sense DAC  and feedback DAC
+  HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_1);
+
+  // Start timer 1 which triggers EOG ADC
   HAL_TIM_OC_Start_IT(&htim1,TIM_CHANNEL_1);
 
   while (1)
@@ -290,7 +295,6 @@ static void MX_DAC_Init(void)
   }
   /** DAC channel OUT2 config 
   */
-  sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
   if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_2) != HAL_OK)
   {
     Error_Handler();
@@ -482,11 +486,6 @@ static void MX_DMA_Init(void)
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
 
-  /* DMA interrupt init */
-  /* DMA1_Channel2_3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
-
 }
 
 /**
@@ -569,7 +568,6 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 		{
 			correcting = 0;
 		}
-		HAL_DACEx_DualSetValue(&hdac, DAC_ALIGN_12B_R, 2048, dac_code);
 	}
 	else
 	{
