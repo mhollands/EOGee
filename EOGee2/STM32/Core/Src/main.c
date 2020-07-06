@@ -46,6 +46,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 ADC_HandleTypeDef hadc;
+DMA_HandleTypeDef hdma_adc;
 
 DAC_HandleTypeDef hdac;
 DMA_HandleTypeDef hdma_dac_ch1;
@@ -57,9 +58,12 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-#define BUFFER_LEN 10
-uint16_t buffer[BUFFER_LEN*2];
-volatile uint8_t buffer_pointer;
+#define OUTPUT_BUFFER_LEN 10
+uint16_t output_buffer[OUTPUT_BUFFER_LEN*2];
+volatile uint8_t output_buffer_pointer;
+#define ADC_DMA_BUFFER_LEN 100
+uint16_t adc_dma_buffer[ADC_DMA_BUFFER_LEN];
+volatile uint8_t adc_dma_buffer_pointer;
 volatile int correcting = 0;
 volatile uint16_t dac_code = 0;
 uint16_t electrode_sense_waveform[100] = {2048, 2176, 2304, 2431, 2557, 2680, 2801, 2919, 3034, 3145, 3251, 3353, 3449, 3540, 3625, 3704, 3776, 3842, 3900, 3951, 3995, 4031, 4059, 4079, 4091, 4095, 4091, 4079, 4059, 4031, 3995, 3951, 3900, 3842, 3776, 3704, 3625, 3540, 3449, 3353, 3251, 3145, 3034, 2919, 2801, 2680, 2557, 2431, 2304, 2176, 2048, 1920, 1792, 1665, 1539, 1416, 1295, 1177, 1062, 951, 845, 743, 647, 556, 471, 392, 320, 254, 196, 145, 101, 65, 37, 17, 5, 1, 5, 17, 37, 65, 101, 145, 196, 254, 320, 392, 471, 556, 647, 743, 845, 951, 1062, 1177, 1295, 1416, 1539, 1665, 1792, 1920};
@@ -76,6 +80,7 @@ static void MX_TIM1_Init(void);
 static void MX_TIM2_Init(void);
 /* USER CODE BEGIN PFP */
 HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance);
+void ADD_POINT_TO_OUTPUT_BUFFER(uint16_t, uint16_t);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -140,8 +145,9 @@ int main(void)
   HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *) electrode_sense_waveform, 100, DAC_ALIGN_12B_R);
 
   // Start EOG ADC conversions
-  buffer_pointer = 0;
-  HAL_ADC_Start_IT(&hadc);
+  output_buffer_pointer = 0;
+  //HAL_ADC_Start_IT(&hadc);
+  HAL_ADC_Start_DMA(&hadc, (uint32_t *) adc_dma_buffer, ADC_DMA_BUFFER_LEN);
 
   // Start timer 2 which triggers electrode sense DAC  and feedback DAC
   HAL_TIM_OC_Start_IT(&htim2,TIM_CHANNEL_1);
@@ -154,14 +160,14 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	  if(buffer_pointer == BUFFER_LEN)
+	  if(output_buffer_pointer == OUTPUT_BUFFER_LEN)
 	  {
 		  // Toggle LED
 		  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
 		  // Send data buffer over usb
-		  CDC_Transmit_FS((void*)buffer, 2*2*BUFFER_LEN);
+		  CDC_Transmit_FS((void*)output_buffer, 2*2*OUTPUT_BUFFER_LEN);
 		  // Reset data buffer
-		  buffer_pointer = 0;
+		  output_buffer_pointer = 0;
 	  }
   }
   /* USER CODE END 3 */
@@ -233,14 +239,14 @@ static void MX_ADC_Init(void)
   hadc.Init.Resolution = ADC_RESOLUTION_12B;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
-  hadc.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc.Init.LowPowerAutoWait = DISABLE;
   hadc.Init.LowPowerAutoPowerOff = DISABLE;
   hadc.Init.ContinuousConvMode = DISABLE;
   hadc.Init.DiscontinuousConvMode = DISABLE;
   hadc.Init.ExternalTrigConv = ADC_EXTERNALTRIGCONV_T1_TRGO;
   hadc.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_RISING;
-  hadc.Init.DMAContinuousRequests = DISABLE;
+  hadc.Init.DMAContinuousRequests = ENABLE;
   hadc.Init.Overrun = ADC_OVR_DATA_PRESERVED;
   if (HAL_ADC_Init(&hadc) != HAL_OK)
   {
@@ -368,7 +374,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 0;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
+  htim1.Init.Period = 1600;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -486,6 +492,11 @@ static void MX_DMA_Init(void)
   /* DMA controller clock enable */
   __HAL_RCC_DMA1_CLK_ENABLE();
 
+  /* DMA interrupt init */
+  /* DMA1_Channel1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
 }
 
 /**
@@ -525,6 +536,22 @@ HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance)
 }
 
 /* USER CODE BEGIN 4 */
+void ADD_POINT_TO_OUTPUT_BUFFER(uint16_t output_val, uint16_t dac_val)
+{
+	// Put data in buffer
+	if(output_buffer_pointer < OUTPUT_BUFFER_LEN)
+	{
+		output_buffer[output_buffer_pointer] = (0x8000 | (uint16_t) output_val);
+		output_buffer[output_buffer_pointer+OUTPUT_BUFFER_LEN] = (0x4000 | dac_val);
+		output_buffer_pointer++;
+	}
+	else
+	{
+		// If no space in buffer, turn on LED as warning
+		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
+	}
+}
+
 /**
   * @brief  Conversion complete callback in non blocking mode
   * @param  hadc ADC handle
@@ -532,20 +559,14 @@ HAL_StatusTypeDef Set_MCP41010_Resistance(uint8_t resistance)
   */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	uint32_t sample = HAL_ADC_GetValue(hadc);
-
-	// Put data in buffer
-	if(buffer_pointer < BUFFER_LEN)
+	uint32_t sample;
+	while(adc_dma_buffer_pointer < ADC_DMA_BUFFER_LEN)
 	{
-		buffer[buffer_pointer] = (0x8000 | (uint16_t) sample);
-		buffer[buffer_pointer+BUFFER_LEN] = (0x4000 | dac_code);
-		buffer_pointer++;
+		sample = adc_dma_buffer[adc_dma_buffer_pointer];
+		ADD_POINT_TO_OUTPUT_BUFFER(sample, dac_code);
+		adc_dma_buffer_pointer += 40;
 	}
-	else
-	{
-		// If no space in buffer, turn on LED as warning
-		HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, GPIO_PIN_SET);
-	}
+	adc_dma_buffer_pointer -= ADC_DMA_BUFFER_LEN;
 
 	// Adjust DAC to move ADC towards target
 	if(correcting == 1)

@@ -8,7 +8,7 @@ import time
 import glob
 
 buffer_len = 2000
-sampling_rate = 48000000/65336
+sampling_rate = 750
 adc_per_dac = 22;
 
 def connect_to_usb():
