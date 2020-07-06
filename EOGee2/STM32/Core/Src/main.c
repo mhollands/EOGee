@@ -92,7 +92,7 @@ int main(void)
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
-  
+
 
   /* MCU Configuration--------------------------------------------------------*/
 
@@ -112,6 +112,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+
   MX_DMA_Init();
   MX_DAC_Init();
   MX_USB_DEVICE_Init();
@@ -123,11 +124,26 @@ int main(void)
   HAL_Delay(3000);
   //CDC_Transmit_FS((uint8_t*)"Hello\n\r", 7);
   /* USER CODE END 2 */
- 
- 
+
+
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+
+  uint64_t sum = 0;
+  while(1)
+  {
+	  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_SET);
+	  sum = 0;
+	  for(int i = 0; i < 20; i++)
+	  {
+		  sum += electrode_sense_waveform[i]*electrode_sense_waveform[i];
+	  }
+	  sum = sum*sum;
+	  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, GPIO_PIN_RESET);
+	  HAL_Delay(500);
+  }
+
   HAL_Delay(1000);
   Set_MCP41010_Resistance(255);
 
@@ -177,7 +193,7 @@ void SystemClock_Config(void)
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14|RCC_OSCILLATORTYPE_HSI48;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
@@ -188,7 +204,7 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  /** Initializes the CPU, AHB and APB busses clocks 
+  /** Initializes the CPU, AHB and APB busses clocks
   */
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
                               |RCC_CLOCKTYPE_PCLK1;
@@ -226,7 +242,7 @@ static void MX_ADC_Init(void)
   /* USER CODE BEGIN ADC_Init 1 */
 
   /* USER CODE END ADC_Init 1 */
-  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
+  /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion)
   */
   hadc.Instance = ADC1;
   hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
@@ -246,7 +262,7 @@ static void MX_ADC_Init(void)
   {
     Error_Handler();
   }
-  /** Configure for the selected ADC regular channel to be converted. 
+  /** Configure for the selected ADC regular channel to be converted.
   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
@@ -278,14 +294,14 @@ static void MX_DAC_Init(void)
   /* USER CODE BEGIN DAC_Init 1 */
 
   /* USER CODE END DAC_Init 1 */
-  /** DAC Initialization 
+  /** DAC Initialization
   */
   hdac.Instance = DAC;
   if (HAL_DAC_Init(&hdac) != HAL_OK)
   {
     Error_Handler();
   }
-  /** DAC channel OUT1 config 
+  /** DAC channel OUT1 config
   */
   sConfig.DAC_Trigger = DAC_TRIGGER_T2_TRGO;
   sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
@@ -293,7 +309,7 @@ static void MX_DAC_Init(void)
   {
     Error_Handler();
   }
-  /** DAC channel OUT2 config 
+  /** DAC channel OUT2 config
   */
   if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_2) != HAL_OK)
   {
@@ -477,10 +493,10 @@ static void MX_TIM2_Init(void)
 
 }
 
-/** 
+/**
   * Enable DMA controller clock
   */
-static void MX_DMA_Init(void) 
+static void MX_DMA_Init(void)
 {
 
   /* DMA controller clock enable */
@@ -601,7 +617,7 @@ void Error_Handler(void)
   * @retval None
   */
 void assert_failed(char *file, uint32_t line)
-{ 
+{
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
      tex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
