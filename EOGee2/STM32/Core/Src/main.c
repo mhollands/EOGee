@@ -261,6 +261,13 @@ static void MX_ADC_Init(void)
   {
     Error_Handler();
   }
+  /** Configure for the selected ADC regular channel to be converted. 
+  */
+  sConfig.Channel = ADC_CHANNEL_3;
+  if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   /* USER CODE BEGIN ADC_Init 2 */
 
   /* USER CODE END ADC_Init 2 */
@@ -564,7 +571,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 	{
 		sample = adc_dma_buffer[adc_dma_buffer_pointer];
 		ADD_POINT_TO_OUTPUT_BUFFER(sample, dac_code);
-		adc_dma_buffer_pointer += 40;
+		adc_dma_buffer_pointer += 80;
 	}
 	adc_dma_buffer_pointer -= ADC_DMA_BUFFER_LEN;
 
