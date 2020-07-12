@@ -57,6 +57,10 @@ def update(frame):
 	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
 	[dacdata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x4]
 
+	demoddata = []
+	[demoddata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x2]
+	[print("Demod: {0}".format(x)) for x in demoddata]
+
 	y = ydata - (np.array(dacdata) - 2048)*adc_per_dac
 	# y = np.convolve(y, np.ones(26)/26, mode="valid")
 	y_filt = scipy.signal.lfilter(filt_b, filt_a, y)

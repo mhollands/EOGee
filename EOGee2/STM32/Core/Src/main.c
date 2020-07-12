@@ -58,15 +58,16 @@ TIM_HandleTypeDef htim1;
 TIM_HandleTypeDef htim2;
 
 /* USER CODE BEGIN PV */
-#define OUTPUT_BUFFER_LEN 10
-uint16_t output_buffer[OUTPUT_BUFFER_LEN*2];
+#define OUTPUT_BUFFER_LEN 100
+uint16_t output_buffer[OUTPUT_BUFFER_LEN*2+1]; // Buffer is long enough for ADC data, DAC data and demod
 volatile uint8_t output_buffer_pointer;
-#define ADC_DMA_BUFFER_LEN 100
+#define ADC_DMA_BUFFER_LEN 1000
 uint16_t adc_dma_buffer[ADC_DMA_BUFFER_LEN];
-volatile uint8_t adc_dma_buffer_pointer;
+volatile uint16_t adc_dma_buffer_pointer;
 volatile int correcting = 0;
 volatile uint16_t dac_code = 0;
-uint16_t electrode_sense_waveform[100] = {2048, 2176, 2304, 2431, 2557, 2680, 2801, 2919, 3034, 3145, 3251, 3353, 3449, 3540, 3625, 3704, 3776, 3842, 3900, 3951, 3995, 4031, 4059, 4079, 4091, 4095, 4091, 4079, 4059, 4031, 3995, 3951, 3900, 3842, 3776, 3704, 3625, 3540, 3449, 3353, 3251, 3145, 3034, 2919, 2801, 2680, 2557, 2431, 2304, 2176, 2048, 1920, 1792, 1665, 1539, 1416, 1295, 1177, 1062, 951, 845, 743, 647, 556, 471, 392, 320, 254, 196, 145, 101, 65, 37, 17, 5, 1, 5, 17, 37, 65, 101, 145, 196, 254, 320, 392, 471, 556, 647, 743, 845, 951, 1062, 1177, 1295, 1416, 1539, 1665, 1792, 1920};
+uint16_t electrode_sense_waveform_i[100] = {2048, 2176, 2304, 2431, 2557, 2680, 2801, 2919, 3034, 3145, 3251, 3353, 3449, 3540, 3625, 3704, 3776, 3842, 3900, 3951, 3995, 4031, 4059, 4079, 4091, 4095, 4091, 4079, 4059, 4031, 3995, 3951, 3900, 3842, 3776, 3704, 3625, 3540, 3449, 3353, 3251, 3145, 3034, 2919, 2801, 2680, 2557, 2431, 2304, 2176, 2048, 1920, 1792, 1665, 1539, 1416, 1295, 1177, 1062, 951, 845, 743, 647, 556, 471, 392, 320, 254, 196, 145, 101, 65, 37, 17, 5, 1, 5, 17, 37, 65, 101, 145, 196, 254, 320, 392, 471, 556, 647, 743, 845, 951, 1062, 1177, 1295, 1416, 1539, 1665, 1792, 1920};
+uint16_t electrode_sense_waveform_q[100] = {4095,4090,4078,4058,4030,3994,3951,3900,3841,3776,3704,3625,3540,3449, 3352,3251,3144,3034,2919,2801,2680,2557,2431,2304,2176,2048,1920,1792, 1665,1539,1416,1295,1177,1062, 952, 845, 744, 647, 556, 471, 392, 320,  255, 196, 145, 102,  66,  38,  18,   6,   1,   6,  18,  38,  66, 102,  145, 196, 255, 320, 392, 471, 556, 647, 744, 845, 952,1062,1177,1295, 1416,1539,1665,1792,1920,2048,2176,2304,2431,2557,2680,2801,2919,3034, 3144,3251,3352,3449,3540,3625,3704,3776,3841,3900,3951,3994,4030,4058, 4078,4090};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -142,11 +143,10 @@ int main(void)
   correcting = 1;
 
   // Start electrode sense dac
-  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *) electrode_sense_waveform, 100, DAC_ALIGN_12B_R);
+  HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (uint32_t *) electrode_sense_waveform_i, 100, DAC_ALIGN_12B_R);
 
   // Start EOG ADC conversions
   output_buffer_pointer = 0;
-  //HAL_ADC_Start_IT(&hadc);
   HAL_ADC_Start_DMA(&hadc, (uint32_t *) adc_dma_buffer, ADC_DMA_BUFFER_LEN);
 
   // Start timer 2 which triggers electrode sense DAC  and feedback DAC
@@ -165,7 +165,7 @@ int main(void)
 		  // Toggle LED
 		  HAL_GPIO_TogglePin(LED1_GPIO_Port, LED1_Pin);
 		  // Send data buffer over usb
-		  CDC_Transmit_FS((void*)output_buffer, 2*2*OUTPUT_BUFFER_LEN);
+		  CDC_Transmit_FS((void*)output_buffer, 2*2*OUTPUT_BUFFER_LEN+2);
 		  // Reset data buffer
 		  output_buffer_pointer = 0;
 	  }
@@ -182,13 +182,12 @@ void SystemClock_Config(void)
   RCC_OscInitTypeDef RCC_OscInitStruct = {0};
   RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
   RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+  RCC_CRSInitTypeDef RCC_CRSInitStruct = {0};
 
   /** Initializes the CPU, AHB and APB busses clocks 
   */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14|RCC_OSCILLATORTYPE_HSI48;
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48;
   RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
-  RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
-  RCC_OscInitStruct.HSI14CalibrationValue = 16;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -213,6 +212,19 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+  /** Enable the SYSCFG APB clock 
+  */
+  __HAL_RCC_CRS_CLK_ENABLE();
+  /** Configures CRS 
+  */
+  RCC_CRSInitStruct.Prescaler = RCC_CRS_SYNC_DIV1;
+  RCC_CRSInitStruct.Source = RCC_CRS_SYNC_SOURCE_USB;
+  RCC_CRSInitStruct.Polarity = RCC_CRS_SYNC_POLARITY_RISING;
+  RCC_CRSInitStruct.ReloadValue = __HAL_RCC_CRS_RELOADVALUE_CALCULATE(48000000,1000);
+  RCC_CRSInitStruct.ErrorLimitValue = 34;
+  RCC_CRSInitStruct.HSI48CalibrationValue = 32;
+
+  HAL_RCCEx_CRSConfig(&RCC_CRSInitStruct);
 }
 
 /**
@@ -235,7 +247,7 @@ static void MX_ADC_Init(void)
   /** Configure the global features of the ADC (Clock, Resolution, Data Alignment and number of conversion) 
   */
   hadc.Instance = ADC1;
-  hadc.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc.Init.ClockPrescaler = ADC_CLOCK_SYNC_PCLK_DIV4;
   hadc.Init.Resolution = ADC_RESOLUTION_12B;
   hadc.Init.DataAlign = ADC_DATAALIGN_RIGHT;
   hadc.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD;
@@ -256,7 +268,7 @@ static void MX_ADC_Init(void)
   */
   sConfig.Channel = ADC_CHANNEL_1;
   sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -567,13 +579,28 @@ void ADD_POINT_TO_OUTPUT_BUFFER(uint16_t output_val, uint16_t dac_val)
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
 	uint32_t sample;
+	uint16_t sample_step = 40;
+	uint16_t nchannels = 2;
 	while(adc_dma_buffer_pointer < ADC_DMA_BUFFER_LEN)
 	{
 		sample = adc_dma_buffer[adc_dma_buffer_pointer];
 		ADD_POINT_TO_OUTPUT_BUFFER(sample, dac_code);
-		adc_dma_buffer_pointer += 80;
+		adc_dma_buffer_pointer += sample_step * nchannels;
 	}
 	adc_dma_buffer_pointer -= ADC_DMA_BUFFER_LEN;
+
+	uint64_t i_acculumator = 0;
+	uint64_t q_acculumator = 0;
+	uint16_t idx = 0;
+	for(int i = 0; i < ADC_DMA_BUFFER_LEN/2; i++)
+	{
+		idx = i%100;
+		i_acculumator += electrode_sense_waveform_i[idx] * adc_dma_buffer[i*2 + 1];
+		q_acculumator += electrode_sense_waveform_q[idx] * adc_dma_buffer[i*2 + 1];
+	}
+	uint64_t accumulator = i_acculumator + q_acculumator;
+	uint16_t demod = accumulator >> 22;
+	output_buffer[2*OUTPUT_BUFFER_LEN] = (0x2000 | (demod & 0xFFF));
 
 	// Adjust DAC to move ADC towards target
 	if(correcting == 1)
