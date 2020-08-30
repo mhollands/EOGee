@@ -1,0 +1,7 @@
+(sym_lib_table
+  (lib (name STM32F412)(type Legacy)(uri ${KIPRJMOD}/STM32F412.lib)(options "")(descr ""))
+  (lib (name DAC7311IDCKR)(type Legacy)(uri ${KIPRJMOD}/DAC7311IDCKR.lib)(options "")(descr ""))
+  (lib (name AD8226)(type Legacy)(uri ${KIPRJMOD}/Libraries/AD8226.lib)(options "")(descr ""))
+  (lib (name MIC5232-3.3YML-TR)(type Legacy)(uri ${KIPRJMOD}/Libraries/MIC5232-3.3YML-TR.lib)(options "")(descr ""))
+  (lib (name AP2210K-3.3TRG1)(type Legacy)(uri ${KIPRJMOD}/Libraries/AP2210K-3.3TRG1.lib)(options "")(descr ""))
+)

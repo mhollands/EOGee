@@ -1,0 +1,535 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Connector:TestPoint TP2
+U 1 1 5F8B8CAA
+P 4650 3750
+F 0 "TP2" V 4650 4000 50  0000 C CNN
+F 1 "TestPoint" H 4708 3777 50  0001 L CNN
+F 2 "Mounting_holes:Preci-Dip_90174-AS" H 4850 3750 50  0001 C CNN
+F 3 "~" H 4850 3750 50  0001 C CNN
+	1    4650 3750
+	0    -1   -1   0   
+$EndComp
+$Comp
+L power:GND #PWR0101
+U 1 1 5F8BB0F7
+P 5700 4200
+F 0 "#PWR0101" H 5700 3950 50  0001 C CNN
+F 1 "GND" H 5705 4027 50  0001 C CNN
+F 2 "" H 5700 4200 50  0001 C CNN
+F 3 "" H 5700 4200 50  0001 C CNN
+	1    5700 4200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5700 4200 5700 4150
+Wire Wire Line
+	5700 4150 5650 4150
+Wire Wire Line
+	5700 4150 5700 4050
+Wire Wire Line
+	5700 3650 5650 3650
+Connection ~ 5700 4150
+Wire Wire Line
+	5650 3750 5700 3750
+Connection ~ 5700 3750
+Wire Wire Line
+	5700 3750 5700 3650
+Wire Wire Line
+	5700 3850 5650 3850
+Connection ~ 5700 3850
+Wire Wire Line
+	5700 3850 5700 3750
+Wire Wire Line
+	5650 3950 5700 3950
+Connection ~ 5700 3950
+Wire Wire Line
+	5700 3950 5700 3850
+Wire Wire Line
+	5650 4050 5700 4050
+Connection ~ 5700 4050
+Wire Wire Line
+	5700 4050 5700 3950
+Wire Wire Line
+	4650 3750 5150 3750
+$Comp
+L Connector:TestPoint TP3
+U 1 1 5F8BCAF0
+P 4650 3650
+F 0 "TP3" V 4650 3900 50  0000 C CNN
+F 1 "TestPoint" H 4708 3677 50  0001 L CNN
+F 2 "Mounting_holes:Preci-Dip_90174-AS" H 4850 3650 50  0001 C CNN
+F 3 "~" H 4850 3650 50  0001 C CNN
+	1    4650 3650
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Connector:TestPoint TP4
+U 1 1 5F8BCCBE
+P 4650 3950
+F 0 "TP4" V 4650 4200 50  0000 C CNN
+F 1 "TestPoint" H 4708 3977 50  0001 L CNN
+F 2 "Mounting_holes:Preci-Dip_90174-AS" H 4850 3950 50  0001 C CNN
+F 3 "~" H 4850 3950 50  0001 C CNN
+	1    4650 3950
+	0    -1   -1   0   
+$EndComp
+$Comp
+L Connector:TestPoint TP5
+U 1 1 5F8BCEEB
+P 4650 3850
+F 0 "TP5" V 4650 4100 50  0000 C CNN
+F 1 "TestPoint" H 4708 3877 50  0001 L CNN
+F 2 "Mounting_holes:Preci-Dip_90174-AS" H 4850 3850 50  0001 C CNN
+F 3 "~" H 4850 3850 50  0001 C CNN
+	1    4650 3850
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	4650 3950 5150 3950
+Wire Wire Line
+	4650 3650 5150 3650
+Wire Wire Line
+	4650 3850 5150 3850
+$Comp
+L power:+3V3 #PWR0102
+U 1 1 5F935C0B
+P 4200 3950
+F 0 "#PWR0102" H 4200 3800 50  0001 C CNN
+F 1 "+3V3" H 4215 4123 50  0000 C CNN
+F 2 "" H 4200 3950 50  0001 C CNN
+F 3 "" H 4200 3950 50  0001 C CNN
+	1    4200 3950
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4200 3950 4200 4050
+$Comp
+L power:GND #PWR0103
+U 1 1 5F936583
+P 4900 4200
+F 0 "#PWR0103" H 4900 3950 50  0001 C CNN
+F 1 "GND" H 4905 4027 50  0001 C CNN
+F 2 "" H 4900 4200 50  0001 C CNN
+F 3 "" H 4900 4200 50  0001 C CNN
+	1    4900 4200
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4900 4200 4900 4150
+Wire Wire Line
+	4900 4150 5150 4150
+$Comp
+L Mechanical:MountingHole_Pad H1
+U 1 1 5F937341
+P 4600 4200
+F 0 "H1" V 4600 4400 50  0000 C CNN
+F 1 "MountingHole_Pad" V 4454 4203 50  0001 C CNN
+F 2 "Mounting_holes:Wurth_97730256330R" H 4600 4200 50  0001 C CNN
+F 3 "~" H 4600 4200 50  0001 C CNN
+	1    4600 4200
+	0    -1   1    0   
+$EndComp
+Wire Wire Line
+	4700 4200 4750 4200
+Wire Wire Line
+	4750 4200 4750 4150
+Wire Wire Line
+	4750 4150 4900 4150
+Connection ~ 4900 4150
+$Comp
+L Mechanical:MountingHole_Pad H2
+U 1 1 5F9390D3
+P 4600 4400
+F 0 "H2" V 4600 4600 50  0000 C CNN
+F 1 "MountingHole_Pad" V 4454 4403 50  0001 C CNN
+F 2 "Mounting_holes:Wurth_97730256330R" H 4600 4400 50  0001 C CNN
+F 3 "~" H 4600 4400 50  0001 C CNN
+	1    4600 4400
+	0    -1   1    0   
+$EndComp
+Wire Wire Line
+	4700 4400 4750 4400
+Wire Wire Line
+	4750 4400 4750 4200
+Connection ~ 4750 4200
+$Comp
+L Mechanical:MountingHole_Pad H3
+U 1 1 5F93C4AD
+P 3200 3700
+F 0 "H3" H 3300 3703 50  0000 L CNN
+F 1 "MountingHole_Pad" H 3300 3658 50  0001 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_DIN965_Pad" H 3200 3700 50  0001 C CNN
+F 3 "~" H 3200 3700 50  0001 C CNN
+	1    3200 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L Mechanical:MountingHole_Pad H4
+U 1 1 5F93C9F1
+P 6500 3700
+F 0 "H4" H 6600 3703 50  0000 L CNN
+F 1 "MountingHole_Pad" H 6600 3658 50  0001 L CNN
+F 2 "MountingHole:MountingHole_3.2mm_M3_DIN965_Pad" H 6500 3700 50  0001 C CNN
+F 3 "~" H 6500 3700 50  0001 C CNN
+	1    6500 3700
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0104
+U 1 1 5F93CFD9
+P 3200 3850
+F 0 "#PWR0104" H 3200 3600 50  0001 C CNN
+F 1 "GND" H 3205 3677 50  0001 C CNN
+F 2 "" H 3200 3850 50  0001 C CNN
+F 3 "" H 3200 3850 50  0001 C CNN
+	1    3200 3850
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0105
+U 1 1 5F93D1FF
+P 6500 3850
+F 0 "#PWR0105" H 6500 3600 50  0001 C CNN
+F 1 "GND" H 6505 3677 50  0001 C CNN
+F 2 "" H 6500 3850 50  0001 C CNN
+F 3 "" H 6500 3850 50  0001 C CNN
+	1    6500 3850
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6500 3850 6500 3800
+Wire Wire Line
+	3200 3800 3200 3850
+$Comp
+L Connector_Generic:Conn_02x06_Odd_Even J1
+U 1 1 5F95C42A
+P 5350 3850
+F 0 "J1" H 5400 4175 50  0000 C CNN
+F 1 "Conn_02x06_Odd_Even" H 5400 4176 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_2x06_P2.54mm_Vertical" H 5350 3850 50  0001 C CNN
+F 3 "~" H 5350 3850 50  0001 C CNN
+	1    5350 3850
+	1    0    0    -1  
+$EndComp
+Text Label 4700 3850 0    50   ~ 0
+SWDIO
+Text Label 4700 3650 0    50   ~ 0
+BOOT
+Text Label 4700 3750 0    50   ~ 0
+RESET
+Text Label 4700 3950 0    50   ~ 0
+SWCLK
+$Comp
+L Connector:TestPoint TP1
+U 1 1 5F935210
+P 4150 4050
+F 0 "TP1" V 4150 4300 50  0000 C CNN
+F 1 "TestPoint" H 4208 4077 50  0001 L CNN
+F 2 "Mounting_holes:Preci-Dip_90174-AS" H 4350 4050 50  0001 C CNN
+F 3 "~" H 4350 4050 50  0001 C CNN
+	1    4150 4050
+	0    -1   -1   0   
+$EndComp
+Wire Wire Line
+	4200 4050 5150 4050
+Wire Wire Line
+	4150 4050 4200 4050
+Connection ~ 4200 4050
+$Comp
+L Switch:SW_Push_45deg SW1
+U 1 1 5F969F84
+P 4450 2850
+F 0 "SW1" V 4450 2706 50  0000 R CNN
+F 1 "SW_Push_45deg" V 4405 2706 50  0001 R CNN
+F 2 "Button_Switch_THT:SW_PUSH_6mm" H 4450 2850 50  0001 C CNN
+F 3 "~" H 4450 2850 50  0001 C CNN
+	1    4450 2850
+	0    -1   -1   0   
+$EndComp
+$Comp
+L power:GND #PWR0106
+U 1 1 5F96ABBC
+P 4350 3000
+F 0 "#PWR0106" H 4350 2750 50  0001 C CNN
+F 1 "GND" H 4355 2827 50  0001 C CNN
+F 2 "" H 4350 3000 50  0001 C CNN
+F 3 "" H 4350 3000 50  0001 C CNN
+	1    4350 3000
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4350 3000 4350 2950
+Text Label 4800 2750 2    50   ~ 0
+RESET
+Wire Wire Line
+	4800 2750 4550 2750
+$Comp
+L Switch:SW_Push_45deg SW2
+U 1 1 5F96C27A
+P 5250 2850
+F 0 "SW2" V 5250 2706 50  0000 R CNN
+F 1 "SW_Push_45deg" V 5205 2706 50  0001 R CNN
+F 2 "Button_Switch_THT:SW_PUSH_6mm" H 5250 2850 50  0001 C CNN
+F 3 "~" H 5250 2850 50  0001 C CNN
+	1    5250 2850
+	0    -1   -1   0   
+$EndComp
+Text Label 4900 2950 0    50   ~ 0
+BOOT
+Wire Wire Line
+	4900 2950 5150 2950
+$Comp
+L power:+3V3 #PWR0107
+U 1 1 5F96EB4D
+P 5350 2700
+F 0 "#PWR0107" H 5350 2550 50  0001 C CNN
+F 1 "+3V3" H 5365 2873 50  0000 C CNN
+F 2 "" H 5350 2700 50  0001 C CNN
+F 3 "" H 5350 2700 50  0001 C CNN
+	1    5350 2700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5350 2700 5350 2750
+Text Notes 4550 3100 0    50   ~ 0
+APEM Inc. MJTP1230
+Text Notes 4000 3550 0    50   ~ 0
+Preci-Dip 90174-AS
+Text Notes 3850 4600 0    50   ~ 0
+The holes screw into Wurth 97730256330R
+Text Notes 3150 3550 0    50   ~ 0
+M3
+Text Notes 6450 3550 0    50   ~ 0
+M3
+$Comp
+L Connector:AudioJack3 J3
+U 1 1 5F266539
+P 2100 5150
+F 0 "J3" H 1821 5129 50  0000 R CNN
+F 1 "AudioJack3" H 1821 5174 50  0001 R CNN
+F 2 "Connector_Audio:Jack_3.5mm_CUI_SJ-3523-SMT_Horizontal" H 2100 5150 50  0001 C CNN
+F 3 "~" H 2100 5150 50  0001 C CNN
+	1    2100 5150
+	1    0    0    1   
+$EndComp
+$Comp
+L Connector:Conn_Coaxial J4
+U 1 1 5F266ED0
+P 4500 5050
+F 0 "J4" H 4600 4979 50  0000 L CNN
+F 1 "Conn_Coaxial" H 4600 4934 50  0001 L CNN
+F 2 "Connector_Coaxial:U.FL_Molex_MCRF_73412-0110_Vertical" H 4500 5050 50  0001 C CNN
+F 3 " ~" H 4500 5050 50  0001 C CNN
+	1    4500 5050
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2350 5300 2350 5250
+Wire Wire Line
+	2350 5250 2300 5250
+Text Label 2750 5050 2    50   ~ 0
+SIGNAL_P
+Wire Wire Line
+	2750 5050 2300 5050
+Text Label 2750 5150 2    50   ~ 0
+SIGNAL_N
+Wire Wire Line
+	2750 5150 2300 5150
+$Comp
+L Connector:AudioJack2 J2
+U 1 1 5F26B6CD
+P 2000 5750
+F 0 "J2" H 1821 5779 50  0000 R CNN
+F 1 "AudioJack2" H 1821 5824 50  0001 R CNN
+F 2 "Connector_Audio:Jack_3.5mm_CUI_SJ-3523-SMT_Horizontal" H 2000 5750 50  0001 C CNN
+F 3 "~" H 2000 5750 50  0001 C CNN
+	1    2000 5750
+	1    0    0    1   
+$EndComp
+$Comp
+L power:GND #PWR0108
+U 1 1 5F26C4F3
+P 2250 5900
+F 0 "#PWR0108" H 2250 5650 50  0001 C CNN
+F 1 "GND" H 2255 5727 50  0001 C CNN
+F 2 "" H 2250 5900 50  0001 C CNN
+F 3 "" H 2250 5900 50  0001 C CNN
+	1    2250 5900
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2250 5900 2250 5850
+Wire Wire Line
+	2250 5850 2200 5850
+Text Label 2750 5750 2    50   ~ 0
+DRIVE
+Wire Wire Line
+	2750 5750 2200 5750
+$Comp
+L power:GND #PWR0109
+U 1 1 5F268802
+P 2350 5300
+F 0 "#PWR0109" H 2350 5050 50  0001 C CNN
+F 1 "GND" H 2355 5127 50  0001 C CNN
+F 2 "" H 2350 5300 50  0001 C CNN
+F 3 "" H 2350 5300 50  0001 C CNN
+	1    2350 5300
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0110
+U 1 1 5F27066A
+P 4500 5300
+F 0 "#PWR0110" H 4500 5050 50  0001 C CNN
+F 1 "GND" H 4505 5127 50  0001 C CNN
+F 2 "" H 4500 5300 50  0001 C CNN
+F 3 "" H 4500 5300 50  0001 C CNN
+	1    4500 5300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4500 5300 4500 5250
+Text Label 3900 5050 0    50   ~ 0
+SIGNAL_P
+Wire Wire Line
+	3900 5050 4300 5050
+$Comp
+L Connector:Conn_Coaxial J5
+U 1 1 5F271F37
+P 4500 5550
+F 0 "J5" H 4600 5479 50  0000 L CNN
+F 1 "Conn_Coaxial" H 4600 5434 50  0001 L CNN
+F 2 "Connector_Coaxial:U.FL_Molex_MCRF_73412-0110_Vertical" H 4500 5550 50  0001 C CNN
+F 3 " ~" H 4500 5550 50  0001 C CNN
+	1    4500 5550
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0111
+U 1 1 5F271F41
+P 4500 5800
+F 0 "#PWR0111" H 4500 5550 50  0001 C CNN
+F 1 "GND" H 4505 5627 50  0001 C CNN
+F 2 "" H 4500 5800 50  0001 C CNN
+F 3 "" H 4500 5800 50  0001 C CNN
+	1    4500 5800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4500 5800 4500 5750
+Text Label 3900 5550 0    50   ~ 0
+SIGNAL_N
+Wire Wire Line
+	3900 5550 4300 5550
+$Comp
+L Connector:Conn_Coaxial J6
+U 1 1 5F2733B5
+P 4500 6050
+F 0 "J6" H 4600 5979 50  0000 L CNN
+F 1 "Conn_Coaxial" H 4600 5934 50  0001 L CNN
+F 2 "Connector_Coaxial:U.FL_Molex_MCRF_73412-0110_Vertical" H 4500 6050 50  0001 C CNN
+F 3 " ~" H 4500 6050 50  0001 C CNN
+	1    4500 6050
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR0112
+U 1 1 5F2733BF
+P 4500 6300
+F 0 "#PWR0112" H 4500 6050 50  0001 C CNN
+F 1 "GND" H 4505 6127 50  0001 C CNN
+F 2 "" H 4500 6300 50  0001 C CNN
+F 3 "" H 4500 6300 50  0001 C CNN
+	1    4500 6300
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4500 6300 4500 6250
+Text Label 3900 6050 0    50   ~ 0
+DRIVE
+Wire Wire Line
+	3900 6050 4300 6050
+$Comp
+L Connector_Generic:Conn_01x02 J8
+U 1 1 5F280374
+P 1950 6450
+F 0 "J8" H 1868 6217 50  0000 C CNN
+F 1 "Conn_01x02" H 1868 6216 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 1950 6450 50  0001 C CNN
+F 3 "~" H 1950 6450 50  0001 C CNN
+	1    1950 6450
+	-1   0    0    1   
+$EndComp
+Text Label 2400 6350 2    50   ~ 0
+DRIVE
+Wire Wire Line
+	2400 6350 2150 6350
+$Comp
+L power:GND #PWR0113
+U 1 1 5F285016
+P 2200 6500
+F 0 "#PWR0113" H 2200 6250 50  0001 C CNN
+F 1 "GND" H 2205 6327 50  0001 C CNN
+F 2 "" H 2200 6500 50  0001 C CNN
+F 3 "" H 2200 6500 50  0001 C CNN
+	1    2200 6500
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2200 6500 2200 6450
+Wire Wire Line
+	2200 6450 2150 6450
+$Comp
+L Connector_Generic:Conn_01x03 J7
+U 1 1 5F2867B9
+P 1950 4650
+F 0 "J7" H 1868 4417 50  0000 C CNN
+F 1 "Conn_01x03" H 1868 4416 50  0001 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x03_P2.54mm_Vertical" H 1950 4650 50  0001 C CNN
+F 3 "~" H 1950 4650 50  0001 C CNN
+	1    1950 4650
+	-1   0    0    1   
+$EndComp
+Text Label 2750 4650 2    50   ~ 0
+SIGNAL_P
+Text Label 2750 4550 2    50   ~ 0
+SIGNAL_N
+$Comp
+L power:GND #PWR0114
+U 1 1 5F2872DB
+P 2250 4800
+F 0 "#PWR0114" H 2250 4550 50  0001 C CNN
+F 1 "GND" H 2255 4627 50  0001 C CNN
+F 2 "" H 2250 4800 50  0001 C CNN
+F 3 "" H 2250 4800 50  0001 C CNN
+	1    2250 4800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	2250 4800 2250 4750
+Wire Wire Line
+	2250 4750 2150 4750
+Wire Wire Line
+	2150 4650 2750 4650
+Wire Wire Line
+	2150 4550 2750 4550
+Text Notes 1050 4900 0    50   ~ 0
+Digikey PN: CP-3523SJCT-ND
+Text Notes 1050 5600 0    50   ~ 0
+Digikey PN: CP-3523SJCT-ND
+$EndSCHEMATC
