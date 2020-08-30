@@ -1,0 +1,94 @@
+EESchema Schematic File Version 4
+EELAYER 30 0
+EELAYER END
+$Descr A4 11693 8268
+encoding utf-8
+Sheet 1 1
+Title ""
+Date ""
+Rev ""
+Comp ""
+Comment1 ""
+Comment2 ""
+Comment3 ""
+Comment4 ""
+$EndDescr
+$Comp
+L Connector:Conn_Coaxial J1
+U 1 1 5F1CDFA5
+P 4300 2550
+F 0 "J1" H 4228 2788 50  0000 C CNN
+F 1 "WM5587CT-ND" H 4228 2697 50  0000 C CNN
+F 2 "Connector_Coaxial:U.FL_Molex_MCRF_73412-0110_Vertical" H 4300 2550 50  0001 C CNN
+F 3 " ~" H 4300 2550 50  0001 C CNN
+	1    4300 2550
+	-1   0    0    -1  
+$EndComp
+$Comp
+L power:GND #PWR01
+U 1 1 5F1CF006
+P 4300 2800
+F 0 "#PWR01" H 4300 2550 50  0001 C CNN
+F 1 "GND" H 4305 2627 50  0001 C CNN
+F 2 "" H 4300 2800 50  0001 C CNN
+F 3 "" H 4300 2800 50  0001 C CNN
+	1    4300 2800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	4800 2550 4500 2550
+$Comp
+L Device:R R1
+U 1 1 5F1CFCE9
+P 4950 2550
+F 0 "R1" V 4850 2550 50  0000 C CNN
+F 1 "0" V 4950 2550 50  0000 C CNN
+F 2 "Resistor_SMD:R_0402_1005Metric" V 4880 2550 50  0001 C CNN
+F 3 "~" H 4950 2550 50  0001 C CNN
+	1    4950 2550
+	0    1    1    0   
+$EndComp
+Text Label 5450 2550 2    50   ~ 0
+SENSE
+$Comp
+L Connector:Conn_01x01_Female J2
+U 1 1 5F1D0605
+P 6350 2550
+F 0 "J2" H 6378 2530 50  0000 L CNN
+F 1 "Conn_01x01_Female" H 6378 2485 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_2.5x2.5mm" H 6350 2550 50  0001 C CNN
+F 3 "~" H 6350 2550 50  0001 C CNN
+	1    6350 2550
+	1    0    0    -1  
+$EndComp
+$Comp
+L Connector:Conn_01x01_Female J3
+U 1 1 5F1D0B9A
+P 6350 2700
+F 0 "J3" H 6378 2680 50  0000 L CNN
+F 1 "Conn_01x01_Female" H 6378 2635 50  0001 L CNN
+F 2 "TestPoint:TestPoint_Pad_2.5x2.5mm" H 6350 2700 50  0001 C CNN
+F 3 "~" H 6350 2700 50  0001 C CNN
+	1    6350 2700
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	5100 2550 6150 2550
+$Comp
+L power:GND #PWR02
+U 1 1 5F1D0EB1
+P 6100 2800
+F 0 "#PWR02" H 6100 2550 50  0001 C CNN
+F 1 "GND" H 6105 2627 50  0001 C CNN
+F 2 "" H 6100 2800 50  0001 C CNN
+F 3 "" H 6100 2800 50  0001 C CNN
+	1    6100 2800
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	6100 2800 6100 2700
+Wire Wire Line
+	6100 2700 6150 2700
+Wire Wire Line
+	4300 2800 4300 2750
+$EndSCHEMATC
