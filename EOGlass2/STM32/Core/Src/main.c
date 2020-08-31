@@ -44,7 +44,22 @@
 /* Private variables ---------------------------------------------------------*/
 SPI_HandleTypeDef hspi1;
 
+TIM_HandleTypeDef htim1;
+
 /* USER CODE BEGIN PV */
+
+#define base_clock 32000
+#define sine_oversample 100
+
+// Store data for inphase and out of phase sine wave
+uint16_t inphase[sine_oversample] = {2048,2176,2304,2431,2557,2680,2801,2919,3034,3145,3251,3353,3449,3540, 3625,3704,3776,3842,3900,3951,3995,4031,4059,4079,4091,4095,4091,4079, 4059,4031,3995,3951,3900,3842,3776,3704,3625,3540,3449,3353,3251,3145, 3034,2919,2801,2680,2557,2431,2304,2176,2048,1919,1791,1664,1538,1415, 1294,1176,1061, 950, 844, 742, 646, 555, 470, 391, 319, 253, 195, 144,  100,  64,  36,  16,   4,   0,   4,  16,  36,  64, 100, 144, 195, 253,  319, 391, 470, 555, 646, 742, 844, 950,1061,1176,1294,1415,1538,1664, 1791,1919};
+uint16_t quadphase[sine_oversample] = {4095,4091,4079,4059,4031,3995,3951,3900,3842,3776,3704,3625,3540,3449, 3353,3251,3145,3034,2919,2801,2680,2557,2431,2304,2176,2048,1919,1791, 1664,1538,1415,1294,1176,1061, 950, 844, 742, 646, 555, 470, 391, 319,  253, 195, 144, 100,  64,  36,  16,   4,   0,   4,  16,  36,  64, 100,  144, 195, 253, 319, 391, 470, 555, 646, 742, 844, 950,1061,1176,1294, 1415,1538,1664,1791,1919,2047,2176,2304,2431,2557,2680,2801,2919,3034, 3145,3251,3353,3449,3540,3625,3704,3776,3842,3900,3951,3995,4031,4059, 4079,4091};
+
+// Pointer to sample of in-phase sine wave for Reference DAC
+volatile uint16_t drive_ptr = 0;
+
+// Buffers for SPI
+uint16_t dac_buffer;
 
 /* USER CODE END PV */
 
@@ -52,6 +67,7 @@ SPI_HandleTypeDef hspi1;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
+static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 uint16_t Package_DAC_Data(uint16_t);
 /* USER CODE END PFP */
@@ -92,28 +108,32 @@ int main(void)
   MX_GPIO_Init();
   MX_SPI1_Init();
   MX_USB_DEVICE_Init();
+  MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
  
+ 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_1);
   uint16_t level = 0x3FFC;
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	 uint16_t tosend = Package_DAC_Data(level);
-	 HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_RESET);
-	 HAL_StatusTypeDef r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&tosend, 1, HAL_MAX_DELAY);
-	 HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
-	 level += 1;
-	 if(level > 4096)
-	 {
-		 level = 0;
-	 }
+//	 uint16_t tosend = Package_DAC_Data(level);
+//	 HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_RESET);
+//	 HAL_StatusTypeDef r = HAL_SPI_Transmit_IT(&hspi1, (uint8_t *)&tosend, 1);
+////	 HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_SET);
+//	 level += 1;
+//	 if(level > 4096)
+//	 {
+//		 level = 0;
+//	 }
+	 HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
@@ -214,6 +234,85 @@ static void MX_SPI1_Init(void)
 }
 
 /**
+  * @brief TIM1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+  TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_OC_InitTypeDef sConfigOC = {0};
+  TIM_BreakDeadTimeConfigTypeDef sBreakDeadTimeConfig = {0};
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  htim1.Instance = TIM1;
+  htim1.Init.Prescaler = 4;
+  htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim1.Init.Period = 500;
+  htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim1.Init.RepetitionCounter = 0;
+  htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim1, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  if (HAL_TIM_OC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterOutputTrigger2 = TIM_TRGO2_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigOC.OCMode = TIM_OCMODE_TIMING;
+  sConfigOC.Pulse = 0;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
+  sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
+  sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
+  sConfigOC.OCIdleState = TIM_OCIDLESTATE_RESET;
+  sConfigOC.OCNIdleState = TIM_OCNIDLESTATE_RESET;
+  if (HAL_TIM_OC_ConfigChannel(&htim1, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sBreakDeadTimeConfig.OffStateRunMode = TIM_OSSR_DISABLE;
+  sBreakDeadTimeConfig.OffStateIDLEMode = TIM_OSSI_DISABLE;
+  sBreakDeadTimeConfig.LockLevel = TIM_LOCKLEVEL_OFF;
+  sBreakDeadTimeConfig.DeadTime = 0;
+  sBreakDeadTimeConfig.BreakState = TIM_BREAK_DISABLE;
+  sBreakDeadTimeConfig.BreakPolarity = TIM_BREAKPOLARITY_HIGH;
+  sBreakDeadTimeConfig.BreakFilter = 0;
+  sBreakDeadTimeConfig.Break2State = TIM_BREAK2_DISABLE;
+  sBreakDeadTimeConfig.Break2Polarity = TIM_BREAK2POLARITY_HIGH;
+  sBreakDeadTimeConfig.Break2Filter = 0;
+  sBreakDeadTimeConfig.AutomaticOutput = TIM_AUTOMATICOUTPUT_DISABLE;
+  if (HAL_TIMEx_ConfigBreakDeadTime(&htim1, &sBreakDeadTimeConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM1_Init 2 */
+
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -226,10 +325,10 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin|CS_SENSE_Pin|CS_REF_Pin|CS_SIGNAL_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(GPIOA, CS_REF_Pin|CS_SENSE_Pin|CS_DRIVE_Pin|CS_SIGNAL_Pin, GPIO_PIN_SET);
 
-  /*Configure GPIO pins : CS_DRIVE_Pin CS_SENSE_Pin CS_REF_Pin CS_SIGNAL_Pin */
-  GPIO_InitStruct.Pin = CS_DRIVE_Pin|CS_SENSE_Pin|CS_REF_Pin|CS_SIGNAL_Pin;
+  /*Configure GPIO pins : CS_REF_Pin CS_SENSE_Pin CS_DRIVE_Pin CS_SIGNAL_Pin */
+  GPIO_InitStruct.Pin = CS_REF_Pin|CS_SENSE_Pin|CS_DRIVE_Pin|CS_SIGNAL_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -242,6 +341,27 @@ uint16_t Package_DAC_Data(uint16_t data)
 {
 	return ((data) << 2) & 0x3FFC;
 }
+
+// CALLBACKS
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	// After transmitting anything we want to disable all DAC pins
+	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_SET);
+}
+
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_RESET);
+	dac_buffer = Package_DAC_Data(inphase[drive_ptr]);
+	HAL_StatusTypeDef r = HAL_SPI_Transmit_IT(&hspi1, (uint8_t *)&dac_buffer, 1);
+	UNUSED(r);
+	if(drive_ptr++ >= sine_oversample - 1)
+	{
+		drive_ptr = 0;
+	}
+}
+
 /* USER CODE END 4 */
 
 /**
