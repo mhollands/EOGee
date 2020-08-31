@@ -69,6 +69,7 @@ static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
+void dispatch_drive_data(void);
 uint16_t Package_DAC_Data(uint16_t);
 /* USER CODE END PFP */
 
@@ -337,20 +338,18 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+// Take unsigned 16-bit data and translate to correct format for DAC7311
+// 2-MSBs should be zero to indicate normal mode
+// middle 12 bits should be data
+// 2-LSBs are don't care, we send zeros
 uint16_t Package_DAC_Data(uint16_t data)
 {
 	return ((data) << 2) & 0x3FFC;
 }
 
-// CALLBACKS
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	// After transmitting anything we want to disable all DAC pins
-	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_SET);
-}
-
-void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+// Send the next sample to the drive dac
+void dispatch_drive_data()
 {
 	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_RESET);
 	dac_buffer = Package_DAC_Data(inphase[drive_ptr]);
@@ -360,6 +359,22 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		drive_ptr = 0;
 	}
+}
+
+// CALLBACKS
+
+// After a spi transaction
+void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	// After transmitting anything we want to disable all DAC pins
+	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_SET);
+}
+
+// Timer output compare interrupt (main base clock for sampling)
+void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
+{
+	dispatch_drive_data();
 }
 
 /* USER CODE END 4 */
