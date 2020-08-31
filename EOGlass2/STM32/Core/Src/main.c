@@ -53,7 +53,7 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_SPI1_Init(void);
 /* USER CODE BEGIN PFP */
-
+uint16_t Package_DAC_Data(uint16_t);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -105,11 +105,12 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+	 uint16_t tosend = Package_DAC_Data(level);
 	 HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_RESET);
-	 HAL_StatusTypeDef r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&level, 1, HAL_MAX_DELAY);
+	 HAL_StatusTypeDef r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&tosend, 1, HAL_MAX_DELAY);
 	 HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
 	 level += 1;
-	 if(level > 16383)
+	 if(level > 4096)
 	 {
 		 level = 0;
 	 }
@@ -237,7 +238,10 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-
+uint16_t Package_DAC_Data(uint16_t data)
+{
+	return ((data) << 2) & 0x3FFC;
+}
 /* USER CODE END 4 */
 
 /**
