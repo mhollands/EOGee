@@ -71,6 +71,8 @@ static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 void dispatch_drive_data(void);
 uint16_t Package_DAC_Data(uint16_t);
+HAL_StatusTypeDef set_spi_cpol0_cpha1(void);
+HAL_StatusTypeDef set_spi_cpol0_cpha0(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -111,7 +113,9 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-
+  uint16_t data;
+  uint16_t level = 0;
+  HAL_StatusTypeDef r;
   /* USER CODE END 2 */
  
  
@@ -124,7 +128,20 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	 HAL_Delay(10);
+//  HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_RESET);
+//  dac_buffer = Package_DAC_Data(level);
+//  r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&dac_buffer, 1, HAL_MAX_DELAY);
+//  HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
+//
+//  HAL_GPIO_WritePin(GPIOA, CS_SENSE_Pin, GPIO_PIN_RESET);
+//  r = HAL_SPI_Receive(&hspi1, (uint8_t *)&data, 1, HAL_MAX_DELAY);
+//  data = data >> 2;
+//  HAL_GPIO_WritePin(GPIOA, CS_SENSE_Pin, GPIO_PIN_SET);
+//  level+=100;
+//	 set_spi_cpol0_cpha0();
+//	 r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&dac_buffer, 1, HAL_MAX_DELAY);
+//	 set_spi_cpol0_cpha1();
+//	 r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&dac_buffer, 1, HAL_MAX_DELAY);
   }
   /* USER CODE END 3 */
 }
@@ -205,7 +222,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.Direction = SPI_DIRECTION_2LINES;
   hspi1.Init.DataSize = SPI_DATASIZE_16BIT;
   hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
   hspi1.Init.NSS = SPI_NSS_SOFT;
   hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
   hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
@@ -213,7 +230,7 @@ static void MX_SPI1_Init(void)
   hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
   hspi1.Init.CRCPolynomial = 7;
   hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
-  hspi1.Init.NSSPMode = SPI_NSS_PULSE_DISABLE;
+  hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
   if (HAL_SPI_Init(&hspi1) != HAL_OK)
   {
     Error_Handler();
@@ -341,6 +358,11 @@ uint16_t Package_DAC_Data(uint16_t data)
 // Send the next sample to the drive dac
 void dispatch_drive_data()
 {
+	// SPI should be CPOL = 0, CPHA = 1
+	if(set_spi_cpol0_cpha1() != HAL_OK)
+	{
+		return;
+	}
 	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_RESET);
 	dac_buffer = Package_DAC_Data(inphase[drive_ptr]);
 	HAL_StatusTypeDef r = HAL_SPI_Transmit_IT(&hspi1, (uint8_t *)&dac_buffer, 1);
@@ -349,6 +371,38 @@ void dispatch_drive_data()
 	{
 		drive_ptr = 0;
 	}
+}
+
+HAL_StatusTypeDef set_spi_cpol0_cpha0()
+{
+	if(hspi1.State == HAL_SPI_STATE_READY)
+	{
+		__HAL_SPI_DISABLE(&hspi1);
+		hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+		hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+		 WRITE_REG(hspi1.Instance->CR1, (hspi1.Init.Mode | hspi1.Init.Direction |
+										   hspi1.Init.CLKPolarity | hspi1.Init.CLKPhase | (hspi1.Init.NSS & SPI_CR1_SSM) |
+										   hspi1.Init.BaudRatePrescaler | hspi1.Init.FirstBit  | hspi1.Init.CRCCalculation));
+		__HAL_SPI_ENABLE(&hspi1);
+		return HAL_OK;
+	}
+	return HAL_ERROR;
+}
+
+HAL_StatusTypeDef set_spi_cpol0_cpha1()
+{
+	if(hspi1.State == HAL_SPI_STATE_READY)
+	{
+		__HAL_SPI_DISABLE(&hspi1);
+		hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+		hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
+		 WRITE_REG(hspi1.Instance->CR1, (hspi1.Init.Mode | hspi1.Init.Direction |
+										   hspi1.Init.CLKPolarity | hspi1.Init.CLKPhase | (hspi1.Init.NSS & SPI_CR1_SSM) |
+										   hspi1.Init.BaudRatePrescaler | hspi1.Init.FirstBit  | hspi1.Init.CRCCalculation));
+		__HAL_SPI_ENABLE(&hspi1);
+		return HAL_OK;
+	}
+	return HAL_ERROR;
 }
 
 // CALLBACKS
