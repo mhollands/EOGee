@@ -118,10 +118,14 @@ int main(void)
   HAL_StatusTypeDef r;
   /* USER CODE END 2 */
  
- 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  char m[256];
+  for(uint16_t i=0; i<256;i++)
+  {
+	  m[i] = i;
+  }
   HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_1);
   while (1)
   {
@@ -142,6 +146,9 @@ int main(void)
 //	 r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&dac_buffer, 1, HAL_MAX_DELAY);
 //	 set_spi_cpol0_cpha1();
 //	 r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&dac_buffer, 1, HAL_MAX_DELAY);
+
+	  CDC_Transmit_FS(m, 64);
+	  HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
