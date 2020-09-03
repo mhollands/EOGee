@@ -54,12 +54,22 @@ TIM_HandleTypeDef htim1;
 // Store data for inphase and out of phase sine wave
 uint16_t inphase[sine_oversample] = {2048,2176,2304,2431,2557,2680,2801,2919,3034,3145,3251,3353,3449,3540, 3625,3704,3776,3842,3900,3951,3995,4031,4059,4079,4091,4095,4091,4079, 4059,4031,3995,3951,3900,3842,3776,3704,3625,3540,3449,3353,3251,3145, 3034,2919,2801,2680,2557,2431,2304,2176,2048,1919,1791,1664,1538,1415, 1294,1176,1061, 950, 844, 742, 646, 555, 470, 391, 319, 253, 195, 144,  100,  64,  36,  16,   4,   0,   4,  16,  36,  64, 100, 144, 195, 253,  319, 391, 470, 555, 646, 742, 844, 950,1061,1176,1294,1415,1538,1664, 1791,1919};
 uint16_t quadphase[sine_oversample] = {4095,4091,4079,4059,4031,3995,3951,3900,3842,3776,3704,3625,3540,3449, 3353,3251,3145,3034,2919,2801,2680,2557,2431,2304,2176,2048,1919,1791, 1664,1538,1415,1294,1176,1061, 950, 844, 742, 646, 555, 470, 391, 319,  253, 195, 144, 100,  64,  36,  16,   4,   0,   4,  16,  36,  64, 100,  144, 195, 253, 319, 391, 470, 555, 646, 742, 844, 950,1061,1176,1294, 1415,1538,1664,1791,1919,2047,2176,2304,2431,2557,2680,2801,2919,3034, 3145,3251,3353,3449,3540,3625,3704,3776,3842,3900,3951,3995,4031,4059, 4079,4091};
-
 // Pointer to sample of in-phase sine wave for Reference DAC
 volatile uint16_t drive_ptr = 0;
 
+// Buffer to hold
+# define periods_per_demod 5
+uint16_t sense_buffer[sine_oversample*periods_per_demod];
+// Pointer to current position in sense buffer
+volatile uint16_t sense_ptr = 0;
+
 // Buffers for SPI
 uint16_t dac_buffer;
+
+// flag to indicate there is data available to demodulate
+volatile uint8_t demod_ready_flag = 0;
+
+volatile uint8_t state;
 
 /* USER CODE END PV */
 
@@ -70,6 +80,7 @@ static void MX_SPI1_Init(void);
 static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 void dispatch_drive_data(void);
+void load_sense_data(void);
 uint16_t Package_DAC_Data(uint16_t);
 HAL_StatusTypeDef set_spi_cpol0_cpha1(void);
 HAL_StatusTypeDef set_spi_cpol0_cpha0(void);
@@ -118,6 +129,7 @@ int main(void)
   HAL_StatusTypeDef r;
   /* USER CODE END 2 */
  
+ 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -126,6 +138,7 @@ int main(void)
   {
 	  m[i] = i;
   }
+
   HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_1);
   while (1)
   {
@@ -147,8 +160,26 @@ int main(void)
 //	 set_spi_cpol0_cpha1();
 //	 r = HAL_SPI_Transmit(&hspi1, (uint8_t *)&dac_buffer, 1, HAL_MAX_DELAY);
 
-	  CDC_Transmit_FS(m, 64);
-	  HAL_Delay(10);
+	  if(demod_ready_flag)
+	  {
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+		  uint64_t i_acculumator = 0;
+		  uint64_t q_acculumator = 0;
+		  for(uint16_t i=0; i<sine_oversample*periods_per_demod; i++)
+		  {
+			  uint16_t sense_data = sense_buffer[i] >> 2;
+			  i_acculumator += sense_data*inphase[i];
+			  q_acculumator += sense_data*quadphase[i];
+		  }
+		  uint64_t accumulator64 = i_acculumator + q_acculumator;
+		  uint16_t accumulator16 = accumulator64 >> 19;
+		  //CDC_Transmit_FS((uint8_t *) &accumulator16, 2);
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+		  demod_ready_flag = 0;
+	  }
+
+//	  CDC_Transmit_FS(m, 64);
+//	  HAL_Delay(10);
   }
   /* USER CODE END 3 */
 }
@@ -271,7 +302,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 4;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 500;
+  htim1.Init.Period = 5000;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -338,9 +369,13 @@ static void MX_GPIO_Init(void)
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOH_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin|CS_SENSE_Pin|CS_REF_Pin|CS_SIGNAL_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : CS_DRIVE_Pin CS_SENSE_Pin CS_REF_Pin CS_SIGNAL_Pin */
   GPIO_InitStruct.Pin = CS_DRIVE_Pin|CS_SENSE_Pin|CS_REF_Pin|CS_SIGNAL_Pin;
@@ -348,6 +383,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : DEBUG_Pin */
+  GPIO_InitStruct.Pin = DEBUG_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(DEBUG_GPIO_Port, &GPIO_InitStruct);
 
 }
 
@@ -365,19 +407,18 @@ uint16_t Package_DAC_Data(uint16_t data)
 // Send the next sample to the drive dac
 void dispatch_drive_data()
 {
-	// SPI should be CPOL = 0, CPHA = 1
-	if(set_spi_cpol0_cpha1() != HAL_OK)
-	{
-		return;
-	}
 	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_RESET);
 	dac_buffer = Package_DAC_Data(inphase[drive_ptr]);
 	HAL_StatusTypeDef r = HAL_SPI_Transmit_IT(&hspi1, (uint8_t *)&dac_buffer, 1);
 	UNUSED(r);
-	if(drive_ptr++ >= sine_oversample - 1)
-	{
-		drive_ptr = 0;
-	}
+}
+
+// Begin spi transaction to load next sense ADC sample
+void load_sense_data()
+{
+	HAL_GPIO_WritePin(GPIOA, CS_SENSE_Pin, GPIO_PIN_RESET);
+	HAL_StatusTypeDef r = HAL_SPI_Receive_IT(&hspi1, (uint8_t *) sense_buffer, 1);
+	UNUSED(r);
 }
 
 HAL_StatusTypeDef set_spi_cpol0_cpha0()
@@ -414,17 +455,27 @@ HAL_StatusTypeDef set_spi_cpol0_cpha1()
 
 // CALLBACKS
 
-// After a spi transaction
+// After a spi transmit transaction
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
 	// After transmitting anything we want to disable all DAC pins
 	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
 	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_SET);
+	load_sense_data();
+}
+
+// After a spi receive transaction
+void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
+{
+	// After transmitting anything we want to disable all DAC pins
+	HAL_GPIO_WritePin(GPIOA, CS_SENSE_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(GPIOA, CS_SIGNAL_Pin, GPIO_PIN_SET);
 }
 
 // Timer output compare interrupt (main base clock for sampling)
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
+	HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
 	dispatch_drive_data();
 }
 
