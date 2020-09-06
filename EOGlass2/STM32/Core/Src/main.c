@@ -57,18 +57,28 @@ uint16_t quadphase[sine_oversample] = {4095,4091,4079,4059,4031,3995,3951,3900,3
 // Pointer to sample of in-phase sine wave for Reference DAC
 volatile uint16_t drive_ptr = 0;
 
-// Buffer to hold
+// Buffer to hold sense data
 # define periods_per_demod 5
 uint16_t sense_buffer[sine_oversample*periods_per_demod];
 // Pointer to current position in sense buffer
 volatile uint16_t sense_ptr = 0;
 
-// Buffers for SPI
+// Buffer to hold signal data
+# define signal_packet_size 750
+# define signal_downsample_lenpower 6
+uint32_t signal_downsample_accumulator = 0;
+uint16_t signal_downsample_counter = 0;
+uint16_t signal_buffer[signal_packet_size];
+volatile uint16_t signal_ptr = 0;
+
+// Buffers for SPI write
 uint16_t dac_buffer;
 
 // flag to indicate there is data available to demodulate
 volatile uint8_t demod_ready_flag = 0;
+// Each stage represents a spi transaction
 volatile uint8_t comm_sequence_stage;
+// Current reference voltage
 volatile uint16_t ref_voltage = 2048;
 
 /* USER CODE END PV */
@@ -81,7 +91,8 @@ static void MX_TIM1_Init(void);
 /* USER CODE BEGIN PFP */
 void dispatch_drive_data(void);
 void dispatch_ref_data(void);
-void load_sense_data(void);
+void begin_sense_read(void);
+void begin_signal_read(void);
 uint16_t Package_DAC_Data(uint16_t);
 HAL_StatusTypeDef set_spi_cpol0_cpha1(void);
 HAL_StatusTypeDef set_spi_cpol0_cpha0(void);
@@ -430,6 +441,13 @@ void begin_sense_read()
 	fast_spi_transmit(0x0000, 0); // send dummy data
 }
 
+// Begin spi transaction to load next signal ADC sample
+void begin_signal_read()
+{
+	HAL_GPIO_WritePin(GPIOA, CS_SIGNAL_Pin, GPIO_PIN_RESET);
+	fast_spi_transmit(0x0000, 0); // send dummy data
+}
+
 // Write a single 16-bit value to the TXFIFO so it will get clocked out
 // cpha not yet supported
 void fast_spi_transmit(uint16_t data, uint8_t cpha)
@@ -459,6 +477,18 @@ void fast_spi_rxcallback(uint16_t data)
 				}
 				dispatch_ref_data();
 				break;
+	case(2):	begin_signal_read(); break;
+	case(3):	signal_downsample_accumulator += data >> 2; //add data to accumulator (ADC 2 LSBs are always zeros)
+				if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
+				{
+					signal_buffer[signal_ptr] = signal_downsample_accumulator >> signal_downsample_lenpower;
+					signal_downsample_accumulator = 0;
+					if(++signal_ptr >= signal_packet_size)
+					{
+						signal_ptr = 0;
+					}
+				}
+				break; //Handle signal read result
 	default: break;
 	}
 	comm_sequence_stage++;
