@@ -84,6 +84,9 @@ void load_sense_data(void);
 uint16_t Package_DAC_Data(uint16_t);
 HAL_StatusTypeDef set_spi_cpol0_cpha1(void);
 HAL_StatusTypeDef set_spi_cpol0_cpha0(void);
+void fast_spi_transmit(uint16_t, uint8_t);
+void fast_spi_initialise(void);
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -124,21 +127,15 @@ int main(void)
   MX_USB_DEVICE_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  uint16_t data;
-  uint16_t level = 0;
-  HAL_StatusTypeDef r;
+//  uint16_t data;
+//  uint16_t level = 0;
+//  HAL_StatusTypeDef r;
+
+  fast_spi_initialise();
   /* USER CODE END 2 */
- 
- 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  char m[256];
-  for(uint16_t i=0; i<256;i++)
-  {
-	  m[i] = i;
-  }
-
   HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_1);
   while (1)
   {
@@ -302,7 +299,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 4;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 5000;
+  htim1.Init.Period = 500;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -409,73 +406,50 @@ void dispatch_drive_data()
 {
 	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_RESET);
 	dac_buffer = Package_DAC_Data(inphase[drive_ptr]);
-	HAL_StatusTypeDef r = HAL_SPI_Transmit_IT(&hspi1, (uint8_t *)&dac_buffer, 1);
-	UNUSED(r);
+	fast_spi_transmit(dac_buffer, 0);
+	if(++drive_ptr >= sine_oversample)
+	{
+		drive_ptr = 0;
+	}
+
 }
 
 // Begin spi transaction to load next sense ADC sample
 void load_sense_data()
 {
-	HAL_GPIO_WritePin(GPIOA, CS_SENSE_Pin, GPIO_PIN_RESET);
 	HAL_StatusTypeDef r = HAL_SPI_Receive_IT(&hspi1, (uint8_t *) sense_buffer, 1);
 	UNUSED(r);
 }
 
-HAL_StatusTypeDef set_spi_cpol0_cpha0()
+// Write a single 16-bit value to the TXFIFO so it will get clocked out
+// cpha not yet supported
+void fast_spi_transmit(uint16_t data, uint8_t cpha)
 {
-	if(hspi1.State == HAL_SPI_STATE_READY)
-	{
-		__HAL_SPI_DISABLE(&hspi1);
-		hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-		hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-		 WRITE_REG(hspi1.Instance->CR1, (hspi1.Init.Mode | hspi1.Init.Direction |
-										   hspi1.Init.CLKPolarity | hspi1.Init.CLKPhase | (hspi1.Init.NSS & SPI_CR1_SSM) |
-										   hspi1.Init.BaudRatePrescaler | hspi1.Init.FirstBit  | hspi1.Init.CRCCalculation));
-		__HAL_SPI_ENABLE(&hspi1);
-		return HAL_OK;
-	}
-	return HAL_ERROR;
+	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+	// coming into this function we assume the SPI is not busy and also that the spi is disabled
+	hspi1.Instance->DR = data;
 }
 
-HAL_StatusTypeDef set_spi_cpol0_cpha1()
+// Callback is called when there is data received in RXFIFO.
+// This occurs after both a TX and an RX because we are full duplex.
+void fast_spi_rxcallback(uint16_t data)
 {
-	if(hspi1.State == HAL_SPI_STATE_READY)
-	{
-		__HAL_SPI_DISABLE(&hspi1);
-		hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-		hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;
-		 WRITE_REG(hspi1.Instance->CR1, (hspi1.Init.Mode | hspi1.Init.Direction |
-										   hspi1.Init.CLKPolarity | hspi1.Init.CLKPhase | (hspi1.Init.NSS & SPI_CR1_SSM) |
-										   hspi1.Init.BaudRatePrescaler | hspi1.Init.FirstBit  | hspi1.Init.CRCCalculation));
-		__HAL_SPI_ENABLE(&hspi1);
-		return HAL_OK;
-	}
-	return HAL_ERROR;
+	// Reset CS lines after transmission complete
+	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin|CS_SIGNAL_Pin|CS_SENSE_Pin|CS_DRIVE_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 }
 
-// CALLBACKS
-
-// After a spi transmit transaction
-void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
+void fast_spi_initialise()
 {
-	// After transmitting anything we want to disable all DAC pins
-	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin, GPIO_PIN_SET);
-	load_sense_data();
-}
-
-// After a spi receive transaction
-void HAL_SPI_RxCpltCallback(SPI_HandleTypeDef *hspi)
-{
-	// After transmitting anything we want to disable all DAC pins
-	HAL_GPIO_WritePin(GPIOA, CS_SENSE_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(GPIOA, CS_SIGNAL_Pin, GPIO_PIN_SET);
+	// Enable only the RX interrupt as this will be thrown after 16 bits have been transmitted
+	__HAL_SPI_ENABLE_IT(&hspi1, (SPI_IT_RXNE));
+	// Enable the SPI. Nothing should happend until we send the fast_spi_transmit function
+	__HAL_SPI_ENABLE(&hspi1);
 }
 
 // Timer output compare interrupt (main base clock for sampling)
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
-	HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
 	dispatch_drive_data();
 }
 

@@ -219,7 +219,9 @@ void TIM1_CC_IRQHandler(void)
 void SPI1_IRQHandler(void)
 {
   /* USER CODE BEGIN SPI1_IRQn 0 */
-
+	uint16_t data = hspi1.Instance->DR; //Read the latest 16 bits from the RXFIFO
+	fast_spi_rxcallback(data); // send it back to main.c
+	return; // We don't want to call the HAL SPI library callbacks so we return before
   /* USER CODE END SPI1_IRQn 0 */
   HAL_SPI_IRQHandler(&hspi1);
   /* USER CODE BEGIN SPI1_IRQn 1 */
