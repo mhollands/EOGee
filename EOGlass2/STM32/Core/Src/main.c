@@ -160,17 +160,15 @@ int main(void)
 	  if(demod_ready_flag)
 	  {
 		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
-		  uint64_t i_acculumator = 0;
-		  uint64_t q_acculumator = 0;
+		  uint32_t i_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
+		  uint32_t q_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
 		  for(uint16_t i=0; i<sine_oversample*periods_per_demod; i++)
 		  {
-			  uint16_t sense_data = sense_buffer[i] >> 2;
 			  uint16_t idx = i % sine_oversample;
-			  i_acculumator += sense_data*inphase[idx];
-			  q_acculumator += sense_data*quadphase[idx];
+			  i_acculumator += sense_buffer[i]*inphase[idx];
+			  q_acculumator += sense_buffer[i]*quadphase[idx];
 		  }
-		  uint64_t accumulator64 = i_acculumator + q_acculumator;
-		  uint16_t accumulator16 = accumulator64 >> 19;
+		  uint16_t accumulator16 = (i_acculumator >> 17) + (q_acculumator >> 17);
 		  CDC_Transmit_FS((uint8_t *) &accumulator16, 2);
 		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 		  demod_ready_flag = 0;
@@ -443,7 +441,7 @@ void fast_spi_rxcallback(uint16_t data)
 	{
 	case(0):  begin_sense_read(); break;
 	case(1):
-				sense_buffer[sense_ptr] = data;
+				sense_buffer[sense_ptr] = data >> 2; // ADC 2 LSBs are always zeros
 				if(++sense_ptr >= sine_oversample * periods_per_demod)
 				{
 					demod_ready_flag = 1;
