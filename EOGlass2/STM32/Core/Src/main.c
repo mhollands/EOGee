@@ -69,7 +69,7 @@ uint16_t dac_buffer;
 // flag to indicate there is data available to demodulate
 volatile uint8_t demod_ready_flag = 0;
 
-volatile uint8_t state;
+volatile uint8_t comm_sequence_stage;
 
 /* USER CODE END PV */
 
@@ -159,19 +159,20 @@ int main(void)
 
 	  if(demod_ready_flag)
 	  {
-//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 		  uint64_t i_acculumator = 0;
 		  uint64_t q_acculumator = 0;
 		  for(uint16_t i=0; i<sine_oversample*periods_per_demod; i++)
 		  {
 			  uint16_t sense_data = sense_buffer[i] >> 2;
-			  i_acculumator += sense_data*inphase[i];
-			  q_acculumator += sense_data*quadphase[i];
+			  uint16_t idx = i % sine_oversample;
+			  i_acculumator += sense_data*inphase[idx];
+			  q_acculumator += sense_data*quadphase[idx];
 		  }
 		  uint64_t accumulator64 = i_acculumator + q_acculumator;
 		  uint16_t accumulator16 = accumulator64 >> 19;
-		  //CDC_Transmit_FS((uint8_t *) &accumulator16, 2);
-//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+		  CDC_Transmit_FS((uint8_t *) &accumulator16, 2);
+		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 		  demod_ready_flag = 0;
 	  }
 
@@ -415,17 +416,17 @@ void dispatch_drive_data()
 }
 
 // Begin spi transaction to load next sense ADC sample
-void load_sense_data()
+void begin_sense_read()
 {
-	HAL_StatusTypeDef r = HAL_SPI_Receive_IT(&hspi1, (uint8_t *) sense_buffer, 1);
-	UNUSED(r);
+	HAL_GPIO_WritePin(GPIOA, CS_SENSE_Pin, GPIO_PIN_RESET);
+	fast_spi_transmit(0x0000, 0); // send dummy data
 }
 
 // Write a single 16-bit value to the TXFIFO so it will get clocked out
 // cpha not yet supported
 void fast_spi_transmit(uint16_t data, uint8_t cpha)
 {
-	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 	// coming into this function we assume the SPI is not busy and also that the spi is disabled
 	hspi1.Instance->DR = data;
 }
@@ -436,7 +437,22 @@ void fast_spi_rxcallback(uint16_t data)
 {
 	// Reset CS lines after transmission complete
 	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin|CS_SIGNAL_Pin|CS_SENSE_Pin|CS_DRIVE_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+
+	switch(comm_sequence_stage)
+	{
+	case(0):  begin_sense_read(); break;
+	case(1):
+				sense_buffer[sense_ptr] = data;
+				if(++sense_ptr >= sine_oversample * periods_per_demod)
+				{
+					demod_ready_flag = 1;
+					sense_ptr = 0;
+				}
+				break;
+	default: break;
+	}
+	comm_sequence_stage++;
 }
 
 void fast_spi_initialise()
@@ -451,6 +467,7 @@ void fast_spi_initialise()
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	dispatch_drive_data();
+	comm_sequence_stage = 0;
 }
 
 /* USER CODE END 4 */
