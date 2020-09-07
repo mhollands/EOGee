@@ -50,6 +50,8 @@ TIM_HandleTypeDef htim1;
 
 #define base_clock 32000
 #define sine_oversample 100
+#define signal_mask 0x8000
+#define demod_mask 0x2000
 
 // Store data for inphase and out of phase sine wave
 uint16_t inphase[sine_oversample] = {2048,2176,2304,2431,2557,2680,2801,2919,3034,3145,3251,3353,3449,3540, 3625,3704,3776,3842,3900,3951,3995,4031,4059,4079,4091,4095,4091,4079, 4059,4031,3995,3951,3900,3842,3776,3704,3625,3540,3449,3353,3251,3145, 3034,2919,2801,2680,2557,2431,2304,2176,2048,1919,1791,1664,1538,1415, 1294,1176,1061, 950, 844, 742, 646, 555, 470, 391, 319, 253, 195, 144,  100,  64,  36,  16,   4,   0,   4,  16,  36,  64, 100, 144, 195, 253,  319, 391, 470, 555, 646, 742, 844, 950,1061,1176,1294,1415,1538,1664, 1791,1919};
@@ -64,7 +66,7 @@ uint16_t sense_buffer[sine_oversample*periods_per_demod];
 volatile uint16_t sense_ptr = 0;
 
 // Buffer to hold signal data
-# define signal_packet_size 750
+# define signal_packet_size 64
 # define signal_downsample_lenpower 6
 uint32_t signal_downsample_accumulator = 0;
 uint16_t signal_downsample_counter = 0;
@@ -74,12 +76,14 @@ volatile uint16_t signal_ptr = 0;
 // Buffers for SPI write
 uint16_t dac_buffer;
 
-// flag to indicate there is data available to demodulate
+// flag to indicate there is sense data available to demodulate
 volatile uint8_t demod_ready_flag = 0;
 // Each stage represents a spi transaction
 volatile uint8_t comm_sequence_stage;
 // Current reference voltage
 volatile uint16_t ref_voltage = 2048;
+// flag to indicate there is signal data available to demodulate
+volatile uint8_t signal_packet_ready_flag = 0;
 
 /* USER CODE END PV */
 
@@ -173,7 +177,7 @@ int main(void)
 
 	  if(demod_ready_flag)
 	  {
-		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 		  uint32_t i_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
 		  uint32_t q_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
 		  for(uint16_t i=0; i<sine_oversample*periods_per_demod; i++)
@@ -183,9 +187,19 @@ int main(void)
 			  q_acculumator += sense_buffer[i]*quadphase[idx];
 		  }
 		  uint16_t accumulator16 = (i_acculumator >> 17) + (q_acculumator >> 17);
-		  CDC_Transmit_FS((uint8_t *) &accumulator16, 2);
-		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+		  uint16_t accumulator12 = (accumulator16 >> 4) | demod_mask;
+		  CDC_Transmit_FS((uint8_t *) &accumulator12, 2);
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 		  demod_ready_flag = 0;
+	  }
+
+	  if(signal_packet_ready_flag)
+	  {
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+		  HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
+		  CDC_Transmit_FS((uint8_t *) signal_buffer, signal_packet_size*2);
+		  signal_packet_ready_flag = 0;
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 	  }
 
 //	  CDC_Transmit_FS(m, 64);
@@ -481,11 +495,13 @@ void fast_spi_rxcallback(uint16_t data)
 	case(3):	signal_downsample_accumulator += data >> 2; //add data to accumulator (ADC 2 LSBs are always zeros)
 				if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
 				{
-					signal_buffer[signal_ptr] = signal_downsample_accumulator >> signal_downsample_lenpower;
+					signal_buffer[signal_ptr] = (signal_downsample_accumulator >> signal_downsample_lenpower) | signal_mask;
 					signal_downsample_accumulator = 0;
+					signal_downsample_counter = 0;
 					if(++signal_ptr >= signal_packet_size)
 					{
 						signal_ptr = 0;
+						signal_packet_ready_flag = 1;
 					}
 				}
 				break; //Handle signal read result

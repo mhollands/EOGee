@@ -8,7 +8,7 @@ import time
 import glob
 
 buffer_len = 2000
-sampling_rate = 48000000/65336
+sampling_rate = 750
 adc_per_dac = 22;
 
 def connect_to_usb():
@@ -20,16 +20,71 @@ def connect_to_usb():
 	s = serial.Serial(available_devices[0])
 	return s
 
-s = connect_to_usb()
+def plot_filter(b,a,fs):
+	freq, h = scipy.signal.freqz(b, a, fs=fs)
+	# Plot
+	fig, ax = plt.subplots(2, 1, figsize=(8, 6))
+	ax[0].plot(freq, 20*np.log10(abs(h)), color='blue')
+	ax[0].set_title("Frequency Response")
+	ax[0].set_ylabel("Amplitude (dB)", color='blue')
+	ax[0].grid()
+	ax[1].plot(freq, np.unwrap(np.angle(h))*180/np.pi, color='green')
+	ax[1].set_ylabel("Angle (degrees)", color='green')
+	ax[1].set_xlabel("Frequency (Hz)")
+	ax[1].grid()
+	plt.show()
+	return
 
-while(1==1):
+def init():
+    return
+
+def update(frame):
+	global ydata
+	global fdata
+	global s
+
 	try:
 		num_bytes_available = int(np.floor(s.in_waiting/2.0)*2)
 		points_8bit = s.read(num_bytes_available)
 	except:
-		print("Unable to communicate with device...")
-		s = connect_to_usb()
-		continue
+  		print("Unable to communicate with device...")
+  		s = connect_to_usb()
+  		return
+
+
 	points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
-	if(len(points_16bit) > 0):
-		print(points_16bit)
+
+	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
+
+	demoddata = []
+	[demoddata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x2]
+	[print("Demod: {0}".format(x)) for x in demoddata]
+
+	y = ydata[-buffer_len:]
+
+	ax_t.set_ylim(np.min(y)-10, np.max(y)+10)
+	ax_t.set_xlim(0, len(y))
+	ln_t.set_data(range(len(y)), y)
+	return
+
+s = connect_to_usb()
+
+filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
+# plot_filter(filt_b, filt_a, sampling_rate)
+
+fig, ax_t = plt.subplots(1,1)
+ydata = []
+
+ln_t, = ax_t.plot([], [], 'r-')
+
+ax_t.set_xlabel("Sample")
+ax_t.set_ylabel("ADC Code")
+
+ani = FuncAnimation(fig, update, init_func=init)
+plt.show()
+
+if(len(ydata) > 0):
+	save_data = {"ydata": ydata}
+	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
+	np.save(filename, save_data)
+	print("Saved as {0}".format(filename))
