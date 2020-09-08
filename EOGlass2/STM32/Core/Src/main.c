@@ -48,7 +48,7 @@ TIM_HandleTypeDef htim1;
 
 /* USER CODE BEGIN PV */
 
-#define base_clock 32000
+#define base_clock 30000
 #define sine_oversample 100
 #define signal_mask 0x8000
 #define demod_mask 0x2000
@@ -152,6 +152,8 @@ int main(void)
 
   fast_spi_initialise();
   /* USER CODE END 2 */
+ 
+ 
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
@@ -180,7 +182,7 @@ int main(void)
 
 	  if(demod_ready_flag)
 	  {
-		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 		  int32_t i_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
 		  int32_t q_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
 		  for(uint16_t i=0; i<sine_oversample*periods_per_demod; i++)
@@ -194,7 +196,7 @@ int main(void)
 		  int32_t accumulatorsquared32 = i_accumulatorsquared32 + q_accumulatorsquared32;
 		  uint16_t accumulator12 = (accumulatorsquared32 >> 19) | demod_mask;
 		  CDC_Transmit_FS((uint8_t *) &accumulator12, 2);
-		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 		  demod_ready_flag = 0;
 	  }
 
@@ -240,7 +242,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
   RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 10;
+  RCC_OscInitStruct.PLL.PLLN = 9;
   RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
   RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -329,9 +331,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 4;
+  htim1.Init.Prescaler = 5;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 500;
+  htim1.Init.Period = 400;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -473,7 +475,7 @@ void begin_signal_read()
 // cpha not yet supported
 void fast_spi_transmit(uint16_t data, uint8_t cpha)
 {
-//	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 	// coming into this function we assume the SPI is not busy and also that the spi is disabled
 	hspi1.Instance->DR = data;
 }
@@ -484,7 +486,7 @@ void fast_spi_rxcallback(uint16_t data)
 {
 	// Reset CS lines after transmission complete
 	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin|CS_SIGNAL_Pin|CS_SENSE_Pin|CS_DRIVE_Pin, GPIO_PIN_SET);
-//	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 
 	switch(comm_sequence_stage)
 	{
