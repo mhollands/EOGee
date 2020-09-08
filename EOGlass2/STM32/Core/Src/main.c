@@ -61,7 +61,7 @@ volatile uint16_t drive_ptr = 0;
 
 // Buffer to hold sense data
 # define periods_per_demod 5
-uint16_t sense_buffer[sine_oversample*periods_per_demod];
+int16_t sense_buffer[sine_oversample*periods_per_demod];
 // Pointer to current position in sense buffer
 volatile uint16_t sense_ptr = 0;
 
@@ -84,6 +84,9 @@ volatile uint8_t comm_sequence_stage;
 volatile uint16_t ref_voltage = 2048;
 // flag to indicate there is signal data available to demodulate
 volatile uint8_t signal_packet_ready_flag = 0;
+
+// Error flag for whenever something unexpected happens
+volatile uint8_t error = 0;
 
 /* USER CODE END PV */
 
@@ -177,26 +180,28 @@ int main(void)
 
 	  if(demod_ready_flag)
 	  {
-//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
-		  uint32_t i_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
-		  uint32_t q_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
+		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+		  int32_t i_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
+		  int32_t q_acculumator = 0; // Data should JUST fit inside a 32 bit integer for 500 samples at 12 bit
 		  for(uint16_t i=0; i<sine_oversample*periods_per_demod; i++)
 		  {
 			  uint16_t idx = i % sine_oversample;
 			  i_acculumator += sense_buffer[i]*inphase[idx];
 			  q_acculumator += sense_buffer[i]*quadphase[idx];
 		  }
-		  uint16_t accumulator16 = (i_acculumator >> 17) + (q_acculumator >> 17);
-		  uint16_t accumulator12 = (accumulator16 >> 4) | demod_mask;
+		  int32_t i_accumulatorsquared32 = (i_acculumator >> 15)*(i_acculumator >> 15);
+		  int32_t q_accumulatorsquared32 = (q_acculumator >> 15)*(q_acculumator >> 15);
+		  int32_t accumulatorsquared32 = i_accumulatorsquared32 + q_accumulatorsquared32;
+		  uint16_t accumulator12 = (accumulatorsquared32 >> 19) | demod_mask;
 		  CDC_Transmit_FS((uint8_t *) &accumulator12, 2);
-//		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 		  demod_ready_flag = 0;
 	  }
 
 	  if(signal_packet_ready_flag)
 	  {
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
-		  HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
+//		  HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
 		  CDC_Transmit_FS((uint8_t *) signal_buffer, signal_packet_size*2);
 		  signal_packet_ready_flag = 0;
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
@@ -485,7 +490,7 @@ void fast_spi_rxcallback(uint16_t data)
 	{
 	case(0):	begin_sense_read(); break;
 	case(1):
-				sense_buffer[sense_ptr] = data >> 2; // ADC 2 LSBs are always zeros
+				sense_buffer[sense_ptr] = (int16_t)((data >> 2) - (1<<11)); // ADC 2 LSBs are always zeros
 				if(++sense_ptr >= sine_oversample * periods_per_demod)
 				{
 					demod_ready_flag = 1;
