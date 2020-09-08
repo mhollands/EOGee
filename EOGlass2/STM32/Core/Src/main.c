@@ -81,7 +81,7 @@ volatile uint8_t demod_ready_flag = 0;
 // Each stage represents a spi transaction
 volatile uint8_t comm_sequence_stage;
 // Current reference voltage
-volatile uint16_t ref_voltage = 2048;
+volatile int16_t ref_voltage = 0;
 // flag to indicate there is signal data available to demodulate
 volatile uint8_t signal_packet_ready_flag = 0;
 
