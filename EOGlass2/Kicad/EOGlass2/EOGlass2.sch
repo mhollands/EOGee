@@ -2606,4 +2606,6 @@ Text Label 2450 6050 0    50   ~ 0
 SWDCLK
 Text Notes 4100 1500 0    50   ~ 0
 Molex 0734120110
+Text Notes 3450 800  0    50   ~ 0
+PCB->Nose: A36224-ND (100mm)\nPCB->Left Side: 17-2016677-4-ND  (220mm)\nPCB->Right: J925-ND (50mm)
 $EndSCHEMATC
