@@ -95,6 +95,12 @@ volatile uint8_t signal_packet_ready_flag = 0;
 // Error flag for whenever something unexpected happens
 volatile uint8_t error = 0;
 
+// Flag whether we are in reference calibration mode
+volatile uint8_t ref_calibration_mode = 0;
+// Number of samples we should spend in each calibration step
+#define ref_calibration_samples 100
+volatile uint16_t ref_calibration_count = 0;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -112,7 +118,6 @@ HAL_StatusTypeDef set_spi_cpol0_cpha1(void);
 HAL_StatusTypeDef set_spi_cpol0_cpha0(void);
 void fast_spi_transmit(uint16_t, uint8_t);
 void fast_spi_initialise(void);
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -202,7 +207,7 @@ int main(void)
 		  int32_t q_accumulatorsquared32 = (q_acculumator >> 15)*(q_acculumator >> 15);
 		  int32_t accumulatorsquared32 = i_accumulatorsquared32 + q_accumulatorsquared32;
 		  uint16_t accumulator12 = (accumulatorsquared32 >> 19) | demod_mask;
-		  CDC_Transmit_FS((uint8_t *) &accumulator12, 2);
+		  while(CDC_Transmit_FS((uint8_t *) &accumulator12, 2) == USBD_BUSY){};
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 		  demod_ready_flag = 0;
 	  }
@@ -211,7 +216,7 @@ int main(void)
 	  {
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 //		  HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
-		  CDC_Transmit_FS((uint8_t *) signal_buffer, signal_packet_size*2);
+		  while(CDC_Transmit_FS((uint8_t *) signal_buffer, signal_packet_size*2) == USBD_BUSY){};
 		  signal_packet_ready_flag = 0;
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 	  }
@@ -482,7 +487,7 @@ void begin_signal_read()
 // cpha not yet supported
 void fast_spi_transmit(uint16_t data, uint8_t cpha)
 {
-	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
+//	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 	// coming into this function we assume the SPI is not busy and also that the spi is disabled
 	hspi1.Instance->DR = data;
 }
@@ -493,7 +498,7 @@ void fast_spi_rxcallback(uint16_t data)
 {
 	// Reset CS lines after transmission complete
 	HAL_GPIO_WritePin(GPIOA, CS_REF_Pin|CS_SIGNAL_Pin|CS_SENSE_Pin|CS_DRIVE_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
+//	HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 
 	switch(comm_sequence_stage)
 	{
@@ -512,18 +517,32 @@ void fast_spi_rxcallback(uint16_t data)
 				if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
 				{
 					uint16_t sample = (signal_downsample_accumulator >> signal_downsample_lenpower);
-					if(sample > ref_upper_threshold)
+					if(!ref_calibration_mode)
 					{
-						if((ref_voltage -= (uint16_t) ((sample - ref_target)/dac_to_adc_counts)) < -2048)
+						if(sample > ref_upper_threshold)
 						{
-							ref_voltage = -2048;
+							if((ref_voltage -= (uint16_t) ((sample - ref_target)/dac_to_adc_counts)) < -2048)
+							{
+								ref_voltage = -2048;
+							}
+						}
+						if(sample < ref_lower_threshold)
+						{
+							if((ref_voltage += (uint16_t) ((ref_target - sample)/dac_to_adc_counts)) > 2047)
+							{
+								ref_voltage = 2047;
+							}
 						}
 					}
-					if(sample < ref_lower_threshold)
+					else
 					{
-						if((ref_voltage += (uint16_t) ((ref_target - sample)/dac_to_adc_counts)) > 2047)
+						if(++ref_calibration_count >= ref_calibration_samples)
 						{
-							ref_voltage = 2047;
+							if(++ref_voltage > 70)
+							{
+								ref_voltage = -70;
+							}
+							ref_calibration_count = 0;
 						}
 					}
 					signal_buffer[signal_ptr] = sample | signal_mask;
@@ -547,6 +566,15 @@ void fast_spi_initialise()
 	__HAL_SPI_ENABLE_IT(&hspi1, (SPI_IT_RXNE));
 	// Enable the SPI. Nothing should happend until we send the fast_spi_transmit function
 	__HAL_SPI_ENABLE(&hspi1);
+}
+
+// Callback for when data is recieved via CDC, called from usbd_cdc_if.c
+void receive_cdc_data(uint8_t* buf, uint16_t len)
+{
+	if(len == 1 && buf[0]=='c')
+	{
+		ref_calibration_mode = !ref_calibration_mode;
+	}
 }
 
 // Timer output compare interrupt (main base clock for sampling)

@@ -55,6 +55,7 @@ void Error_Handler(void);
 
 /* USER CODE BEGIN EFP */
 void fast_spi_rxcallback(uint16_t);
+void receive_cdc_data(uint8_t*, uint16_t);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
