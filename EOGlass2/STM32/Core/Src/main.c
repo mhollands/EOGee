@@ -52,6 +52,10 @@ TIM_HandleTypeDef htim1;
 #define sine_oversample 100
 #define signal_mask 0x8000
 #define demod_mask 0x2000
+#define gain1 66.87
+#define gain2 22
+#define gain3 1.5
+#define dac_to_adc_counts (gain2*gain3)
 
 // Store data for inphase and out of phase sine wave
 int16_t inphase[sine_oversample] = {0,  128,  256,  383,  509,  632,  753,  871,  986, 1097, 1203, 1305,  1401, 1492, 1577, 1656, 1728, 1794, 1852, 1903, 1947, 1983, 2011, 2031,  2043, 2047, 2043, 2031, 2011, 1983, 1947, 1903, 1852, 1794, 1728, 1656,  1577, 1492, 1401, 1305, 1203, 1097,  986,  871,  753,  632,  509,  383,   256,  128,    0, -129, -257, -384, -510, -633, -754, -872, -987,-1098, -1204,-1306,-1402,-1493,-1578,-1657,-1729,-1795,-1853,-1904,-1948,-1984, -2012,-2032,-2044,-2048,-2044,-2032,-2012,-1984,-1948,-1904,-1853,-1795, -1729,-1657,-1578,-1493,-1402,-1306,-1204,-1098, -987, -872, -754, -633,  -510, -384, -257, -129};
@@ -67,7 +71,7 @@ volatile uint16_t sense_ptr = 0;
 
 // Buffer to hold signal data
 # define signal_packet_size 64
-# define signal_downsample_lenpower 6
+# define signal_downsample_lenpower 5
 uint32_t signal_downsample_accumulator = 0;
 uint16_t signal_downsample_counter = 0;
 uint16_t signal_buffer[signal_packet_size];
@@ -82,6 +86,9 @@ volatile uint8_t demod_ready_flag = 0;
 volatile uint8_t comm_sequence_stage;
 // Current reference voltage
 volatile int16_t ref_voltage = 0;
+#define ref_lower_threshold 500
+#define ref_upper_threshold 3500
+#define ref_target 2048
 // flag to indicate there is signal data available to demodulate
 volatile uint8_t signal_packet_ready_flag = 0;
 
@@ -504,7 +511,22 @@ void fast_spi_rxcallback(uint16_t data)
 	case(3):	signal_downsample_accumulator += data >> 2; //add data to accumulator (ADC 2 LSBs are always zeros)
 				if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
 				{
-					signal_buffer[signal_ptr] = (signal_downsample_accumulator >> signal_downsample_lenpower) | signal_mask;
+					uint16_t sample = (signal_downsample_accumulator >> signal_downsample_lenpower);
+					if(sample > ref_upper_threshold)
+					{
+						if((ref_voltage -= (uint16_t) ((sample - ref_target)/dac_to_adc_counts)) < -2048)
+						{
+							ref_voltage = -2048;
+						}
+					}
+					if(sample < ref_lower_threshold)
+					{
+						if((ref_voltage += (uint16_t) ((ref_target - sample)/dac_to_adc_counts)) > 2047)
+						{
+							ref_voltage = 2047;
+						}
+					}
+					signal_buffer[signal_ptr] = sample | signal_mask;
 					signal_downsample_accumulator = 0;
 					signal_downsample_counter = 0;
 					if(++signal_ptr >= signal_packet_size)

@@ -8,8 +8,7 @@ import time
 import glob
 
 buffer_len = 2000
-sampling_rate = 750
-adc_per_dac = 22;
+sampling_rate = 30000/32
 
 def connect_to_usb():
 	available_devices = []
@@ -17,7 +16,7 @@ def connect_to_usb():
 	while(len(available_devices) < 1):
 		available_devices = glob.glob("/dev/tty.usbmodem*")
 	print("Connecting to {0}".format(available_devices[0]))
-	s = serial.Serial(available_devices[0])
+	s = serial.Serial(available_devices[0])	
 	return s
 
 def plot_filter(b,a,fs):
@@ -61,10 +60,20 @@ def update(frame):
 	[print("Demod: {0}".format(x)) for x in demoddata]
 
 	y = ydata[-buffer_len:]
-
 	ax_t.set_ylim(np.min(y)-10, np.max(y)+10)
 	ax_t.set_xlim(0, len(y))
-	ln_t.set_data(range(len(y)), y)
+	ln_y.set_data(range(len(y)), y)
+
+	ydata_filt = scipy.signal.lfilter(filt_b, filt_a, ydata)
+	y_filt = ydata_filt[-buffer_len:]
+	ln_y_filt.set_data(range(len(y_filt)), y_filt)
+
+	# Take fourier transform of data with mean value removed
+	fdata = np.abs(np.fft.fft(y - np.mean(y)))
+	freqs = np.arange(0,int(len(fdata)/2)) * sampling_rate / len(fdata)
+	ax_f.set_ylim(np.min(fdata), np.max(fdata))
+	ax_f.set_xlim(0, np.max(freqs))
+	ln_f.set_data(freqs, fdata[0:int(len(fdata)/2)])
 	return
 
 s = connect_to_usb()
@@ -72,10 +81,13 @@ s = connect_to_usb()
 filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
 # plot_filter(filt_b, filt_a, sampling_rate)
 
-fig, ax_t = plt.subplots(1,1)
+fig, [ax_t, ax_f] = plt.subplots(2,1)
 ydata = []
 
-ln_t, = ax_t.plot([], [], 'r-')
+ln_y, = ax_t.plot([], [], 'r-')
+ln_y_filt, = ax_t.plot([], [], 'b-')
+
+ln_f, = ax_f.plot([], [], 'r-')
 
 ax_t.set_xlabel("Sample")
 ax_t.set_ylabel("ADC Code")
@@ -83,8 +95,8 @@ ax_t.set_ylabel("ADC Code")
 ani = FuncAnimation(fig, update, init_func=init)
 plt.show()
 
-if(len(ydata) > 0):
-	save_data = {"ydata": ydata}
-	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
-	np.save(filename, save_data)
-	print("Saved as {0}".format(filename))
+# if(len(ydata) > 0):
+# 	save_data = {"ydata": ydata}
+# 	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
+# 	np.save(filename, save_data)
+# 	print("Saved as {0}".format(filename))
