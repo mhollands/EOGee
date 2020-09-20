@@ -54,19 +54,25 @@ def update(frame):
 	points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
 
 	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
+	[offsetdata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x4]
 
 	demoddata = []
 	[demoddata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x2]
 	[print("Demod: {0}".format(x)) for x in demoddata]
 
 	y = ydata[-buffer_len:]
-	ax_t.set_ylim(np.min(y)-10, np.max(y)+10)
-	ax_t.set_xlim(0, len(y))
+	ax_y.set_ylim(np.min(y)-10, np.max(y)+10)
+	ax_y.set_xlim(0, len(y))
 	ln_y.set_data(range(len(y)), y)
 
 	ydata_filt = scipy.signal.lfilter(filt_b, filt_a, ydata)
 	y_filt = ydata_filt[-buffer_len:]
 	ln_y_filt.set_data(range(len(y_filt)), y_filt)
+
+	offset = offsetdata[-buffer_len:]
+	ax_o.set_ylim(np.min(offset)-10, np.max(offset)+10)
+	ax_o.set_xlim(0, len(offset))
+	ln_o.set_data(range(len(offset)), offset)
 
 	# Take fourier transform of data with mean value removed
 	fdata = np.abs(np.fft.fft(y - np.mean(y)))
@@ -81,16 +87,17 @@ s = connect_to_usb()
 filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
 # plot_filter(filt_b, filt_a, sampling_rate)
 
-fig, [ax_t, ax_f] = plt.subplots(2,1)
+fig, [ax_y, ax_o, ax_f] = plt.subplots(3,1)
 ydata = []
+offsetdata = []
 
-ln_y, = ax_t.plot([], [], 'r-')
-ln_y_filt, = ax_t.plot([], [], 'b-')
-
+ln_y, = ax_y.plot([], [], 'r-')
+ln_y_filt, = ax_y.plot([], [], 'b-')
+ln_o, = ax_o.plot([], [], 'r-')
 ln_f, = ax_f.plot([], [], 'r-')
 
-ax_t.set_xlabel("Sample")
-ax_t.set_ylabel("ADC Code")
+ax_y.set_xlabel("Sample")
+ax_y.set_ylabel("ADC Code")
 
 ani = FuncAnimation(fig, update, init_func=init)
 plt.show()

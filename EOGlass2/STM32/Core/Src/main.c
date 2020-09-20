@@ -51,6 +51,7 @@ TIM_HandleTypeDef htim1;
 #define base_clock 30000
 #define sine_oversample 100
 #define signal_mask 0x8000
+#define ref_mask 0x4000
 #define demod_mask 0x2000
 #define gain1 66.87
 #define gain2 22
@@ -89,6 +90,7 @@ volatile int16_t ref_voltage = 0;
 #define ref_lower_threshold 500
 #define ref_upper_threshold 3500
 #define ref_target 2048
+uint16_t ref_buffer[signal_packet_size];
 // flag to indicate there is signal data available to demodulate
 volatile uint8_t signal_packet_ready_flag = 0;
 
@@ -217,6 +219,7 @@ int main(void)
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 //		  HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
 		  while(CDC_Transmit_FS((uint8_t *) signal_buffer, signal_packet_size*2) == USBD_BUSY){};
+		  while(CDC_Transmit_FS((uint8_t *) ref_buffer, signal_packet_size*2) == USBD_BUSY){};
 		  signal_packet_ready_flag = 0;
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 	  }
@@ -517,6 +520,19 @@ void fast_spi_rxcallback(uint16_t data)
 				if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
 				{
 					uint16_t sample = (signal_downsample_accumulator >> signal_downsample_lenpower);
+					ref_buffer[signal_ptr] = ((uint16_t)(ref_voltage+2048)) | ref_mask;
+					signal_buffer[signal_ptr] = sample | signal_mask;
+					signal_downsample_accumulator = 0;
+					signal_downsample_counter = 0;
+					if(signal_packet_ready_flag != 0)
+					{
+						error = 1;
+					}
+					if(++signal_ptr >= signal_packet_size)
+					{
+						signal_ptr = 0;
+						signal_packet_ready_flag = 1;
+					}
 					if(!ref_calibration_mode)
 					{
 						if(sample > ref_upper_threshold)
@@ -544,14 +560,6 @@ void fast_spi_rxcallback(uint16_t data)
 							}
 							ref_calibration_count = 0;
 						}
-					}
-					signal_buffer[signal_ptr] = sample | signal_mask;
-					signal_downsample_accumulator = 0;
-					signal_downsample_counter = 0;
-					if(++signal_ptr >= signal_packet_size)
-					{
-						signal_ptr = 0;
-						signal_packet_ready_flag = 1;
 					}
 				}
 				break; //Handle signal read result
