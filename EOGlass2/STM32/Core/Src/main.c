@@ -57,6 +57,7 @@ TIM_HandleTypeDef htim1;
 #define gain2 22
 #define gain3 1.5
 #define dac_to_adc_counts (gain2*gain3)
+#define double_buffered 1
 
 // Store data for inphase and out of phase sine wave
 int16_t inphase[sine_oversample] = {0,  128,  256,  383,  509,  632,  753,  871,  986, 1097, 1203, 1305,  1401, 1492, 1577, 1656, 1728, 1794, 1852, 1903, 1947, 1983, 2011, 2031,  2043, 2047, 2043, 2031, 2011, 1983, 1947, 1903, 1852, 1794, 1728, 1656,  1577, 1492, 1401, 1305, 1203, 1097,  986,  871,  753,  632,  509,  383,   256,  128,    0, -129, -257, -384, -510, -633, -754, -872, -987,-1098, -1204,-1306,-1402,-1493,-1578,-1657,-1729,-1795,-1853,-1904,-1948,-1984, -2012,-2032,-2044,-2048,-2044,-2032,-2012,-1984,-1948,-1904,-1853,-1795, -1729,-1657,-1578,-1493,-1402,-1306,-1204,-1098, -987, -872, -754, -633,  -510, -384, -257, -129};
@@ -75,8 +76,9 @@ volatile uint16_t sense_ptr = 0;
 # define signal_downsample_lenpower 5
 uint32_t signal_downsample_accumulator = 0;
 uint16_t signal_downsample_counter = 0;
-uint16_t signal_buffer[signal_packet_size];
+uint16_t signal_buffer[signal_packet_size*2]; // Double length for double buffering
 volatile uint16_t signal_ptr = 0;
+volatile uint8_t double_buffer_flag = 0;
 
 // Buffers for SPI write
 uint16_t dac_buffer;
@@ -90,7 +92,7 @@ volatile int16_t ref_voltage = 0;
 #define ref_lower_threshold 500
 #define ref_upper_threshold 3500
 #define ref_target 2048
-uint16_t ref_buffer[signal_packet_size];
+uint16_t ref_buffer[signal_packet_size*2]; // Double length for double buffering
 // flag to indicate there is signal data available to demodulate
 volatile uint8_t signal_packet_ready_flag = 0;
 
@@ -214,12 +216,12 @@ int main(void)
 		  demod_ready_flag = 0;
 	  }
 
-	  if(signal_packet_ready_flag)
+	  if(signal_packet_ready_flag != 0)
 	  {
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_SET);
 //		  HAL_GPIO_TogglePin(DEBUG_GPIO_Port, DEBUG_Pin);
-		  while(CDC_Transmit_FS((uint8_t *) signal_buffer, signal_packet_size*2) == USBD_BUSY){};
-		  while(CDC_Transmit_FS((uint8_t *) ref_buffer, signal_packet_size*2) == USBD_BUSY){};
+		  while(CDC_Transmit_FS((uint8_t *) &signal_buffer[(signal_packet_ready_flag-1)*signal_packet_size], signal_packet_size*2) == USBD_BUSY){};
+		  while(CDC_Transmit_FS((uint8_t *) &ref_buffer[(signal_packet_ready_flag-1)*signal_packet_size], signal_packet_size*2) == USBD_BUSY){};
 		  signal_packet_ready_flag = 0;
 //		  HAL_GPIO_WritePin(DEBUG_GPIO_Port, DEBUG_Pin, GPIO_PIN_RESET);
 	  }
@@ -520,18 +522,26 @@ void fast_spi_rxcallback(uint16_t data)
 				if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
 				{
 					uint16_t sample = (signal_downsample_accumulator >> signal_downsample_lenpower);
-					ref_buffer[signal_ptr] = ((uint16_t)(ref_voltage+2048)) | ref_mask;
-					signal_buffer[signal_ptr] = sample | signal_mask;
+					ref_buffer[signal_ptr + double_buffer_flag*signal_packet_size] = ((uint16_t)(ref_voltage+2048)) | ref_mask;
+					signal_buffer[signal_ptr + double_buffer_flag*signal_packet_size] = sample | signal_mask;
 					signal_downsample_accumulator = 0;
 					signal_downsample_counter = 0;
-					if(signal_packet_ready_flag != 0)
+					// If we are adding new data but we haven't finished transmitting the old data, throw error flag
+					if(signal_packet_ready_flag == (double_buffer_flag + 1))
 					{
 						error = 1;
 					}
 					if(++signal_ptr >= signal_packet_size)
 					{
+						// Reset pointer to start of buffer
 						signal_ptr = 0;
-						signal_packet_ready_flag = 1;
+						// Mark that this buffer is ready for sending over USB
+						signal_packet_ready_flag = double_buffer_flag + 1;
+						if(double_buffered)
+						{
+							// Switch which buffer we are using
+							double_buffer_flag = (double_buffer_flag == 0 ? 1 : 0);
+						}
 					}
 					if(!ref_calibration_mode)
 					{
