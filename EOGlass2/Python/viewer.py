@@ -9,6 +9,8 @@ import glob
 
 buffer_len = 2000
 sampling_rate = 30000/32
+demod_sample_rate = 30000/100/5;
+demod_sampling_ratio = sampling_rate/demod_sample_rate
 
 def connect_to_usb():
 	available_devices = []
@@ -56,9 +58,7 @@ def update(frame):
 	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
 	[offsetdata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x4]
 
-	demoddata = []
 	[demoddata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x2]
-	[print("Demod: {0}".format(x)) for x in demoddata]
 
 	y = ydata[-buffer_len:]
 	ax_y.set_ylim(np.min(y)-10, np.max(y)+10)
@@ -80,6 +80,11 @@ def update(frame):
 	ax_f.set_ylim(np.min(fdata), np.max(fdata))
 	ax_f.set_xlim(0, np.max(freqs))
 	ln_f.set_data(freqs, fdata[0:int(len(fdata)/2)])
+
+	demod = demoddata[-buffer_len:]
+	ax_d.set_ylim(np.min(demod)-10, np.max(demod)+10)
+	ax_d.set_xlim(0, len(demod))
+	ln_d.set_data(range(len(demod)), demod)
 	return
 
 s = connect_to_usb()
@@ -87,14 +92,16 @@ s = connect_to_usb()
 filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
 # plot_filter(filt_b, filt_a, sampling_rate)
 
-fig, [ax_y, ax_o, ax_f] = plt.subplots(3,1)
+fig, [ax_y, ax_o, ax_f, ax_d] = plt.subplots(4,1)
 ydata = []
 offsetdata = []
+demoddata = []
 
 ln_y, = ax_y.plot([], [], 'r-')
 ln_y_filt, = ax_y.plot([], [], 'b-')
 ln_o, = ax_o.plot([], [], 'r-')
 ln_f, = ax_f.plot([], [], 'r-')
+ln_d, = ax_d.plot([], [], 'r-')
 
 ax_y.set_xlabel("Sample")
 ax_y.set_ylabel("ADC Code")
