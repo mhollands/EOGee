@@ -109,8 +109,8 @@ ax_y.set_ylabel("ADC Code")
 ani = FuncAnimation(fig, update, init_func=init)
 plt.show()
 
-# if(len(ydata) > 0):
-# 	save_data = {"ydata": ydata}
-# 	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
-# 	np.save(filename, save_data)
-# 	print("Saved as {0}".format(filename))
+if(len(ydata) > 0):
+	save_data = {"ydata": ydata, "demoddata": demoddata, "offsetdata": offsetdata}
+	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
+	np.save(filename, save_data)
+	print("Saved as {0}".format(filename))
