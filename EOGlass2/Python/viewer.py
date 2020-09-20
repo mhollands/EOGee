@@ -11,6 +11,7 @@ buffer_len = 2000
 sampling_rate = 30000/32
 demod_sample_rate = 30000/100/5;
 demod_sampling_ratio = sampling_rate/demod_sample_rate
+adc_counts_per_dac_code = 30.126222239066166
 
 def connect_to_usb():
 	available_devices = []
@@ -52,7 +53,6 @@ def update(frame):
   		s = connect_to_usb()
   		return
 
-
 	points_16bit = [points_8bit[i+1] * 256 + points_8bit[i] for i in range(0,len(points_8bit), 2)]
 
 	[ydata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x8]
@@ -60,16 +60,16 @@ def update(frame):
 
 	[demoddata.append(x & 0x0FFF) for x in points_16bit if (x >> 12) == 0x2]
 
-	y = ydata[-buffer_len:]
+	offset = np.array(offsetdata[-buffer_len:])
+	y = np.array(ydata[-buffer_len:]) - (offset - 2048)*adc_counts_per_dac_code
 	ax_y.set_ylim(np.min(y)-10, np.max(y)+10)
 	ax_y.set_xlim(0, len(y))
 	ln_y.set_data(range(len(y)), y)
 
 	ydata_filt = scipy.signal.lfilter(filt_b, filt_a, ydata)
-	y_filt = ydata_filt[-buffer_len:]
+	y_filt = ydata_filt[-buffer_len:] - (offset - 2048)*adc_counts_per_dac_code
 	ln_y_filt.set_data(range(len(y_filt)), y_filt)
 
-	offset = offsetdata[-buffer_len:]
 	ax_o.set_ylim(np.min(offset)-10, np.max(offset)+10)
 	ax_o.set_xlim(0, len(offset))
 	ln_o.set_data(range(len(offset)), offset)
@@ -109,8 +109,8 @@ ax_y.set_ylabel("ADC Code")
 ani = FuncAnimation(fig, update, init_func=init)
 plt.show()
 
-if(len(ydata) > 0):
-	save_data = {"ydata": ydata, "demoddata": demoddata, "offsetdata": offsetdata}
-	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
-	np.save(filename, save_data)
-	print("Saved as {0}".format(filename))
+# if(len(ydata) > 0):
+# 	save_data = {"ydata": ydata, "demoddata": demoddata, "offsetdata": offsetdata}
+# 	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
+# 	np.save(filename, save_data)
+# 	print("Saved as {0}".format(filename))
