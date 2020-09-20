@@ -22,6 +22,7 @@ yvals = []
 ovals = []
 for i in range(len(edge_endings)-1):
 	ypoints = y[edge_endings[i]+settling_time:edge_beginnings[i]]
+	diff_points = np.diff(y)[edge_endings[i]+settling_time:edge_beginnings[i]]
 	opoints = o[edge_endings[i]+settling_time:edge_beginnings[i]]
 	plt.plot(ypoints)
 	yvals.append(np.mean(ypoints))
@@ -34,13 +35,18 @@ ovals = np.array(ovals)
 yvals = np.array(yvals)
 
 lookup = dict()
+diffs = []
 for i in range(valid_range[0], valid_range[1]):
 	idx = (ovals == i)
+	diffs.extend(np.diff(yvals)[idx[:-1]])
 	lookup[i] = np.mean(yvals[idx]) - midscale
 
 plt.figure()
 plt.plot(y)
 plt.plot(o)
-plt.show()
 
+average_step = np.mean(diffs)
+print("Average Step: {0}".format(average_step))
 np.save("calibration_table_new.npy", lookup)
+
+plt.show()
