@@ -1,0 +1,5 @@
+(fp_lib_table
+  (lib (name PDB12)(type KiCad)(uri ${KIPRJMOD}/Libraries/PDB12.pretty)(options "")(descr ""))
+  (lib (name LP5907UVX)(type KiCad)(uri ${KIPRJMOD}/Libraries/LP5907UVX/LP5907UVX.pretty)(options "")(descr ""))
+  (lib (name TSZ12x)(type KiCad)(uri ${KIPRJMOD}/Libraries/TSZ12x.pretty)(options "")(descr ""))
+)
