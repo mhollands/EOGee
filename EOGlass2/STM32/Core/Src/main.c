@@ -58,6 +58,7 @@ TIM_HandleTypeDef htim1;
 #define gain3 1.5
 #define dac_to_adc_counts (gain2*gain3)
 #define double_buffered 1
+#define reset_bootloader_magic_number 0xBEDABB1E
 
 // Store data for inphase and out of phase sine wave
 int16_t inphase[sine_oversample] = {0,  128,  256,  383,  509,  632,  753,  871,  986, 1097, 1203, 1305,  1401, 1492, 1577, 1656, 1728, 1794, 1852, 1903, 1947, 1983, 2011, 2031,  2043, 2047, 2043, 2031, 2011, 1983, 1947, 1903, 1852, 1794, 1728, 1656,  1577, 1492, 1401, 1305, 1203, 1097,  986,  871,  753,  632,  509,  383,   256,  128,    0, -129, -257, -384, -510, -633, -754, -872, -987,-1098, -1204,-1306,-1402,-1493,-1578,-1657,-1729,-1795,-1853,-1904,-1948,-1984, -2012,-2032,-2044,-2048,-2044,-2032,-2012,-1984,-1948,-1904,-1853,-1795, -1729,-1657,-1578,-1493,-1402,-1306,-1204,-1098, -987, -872, -754, -633,  -510, -384, -257, -129};
@@ -108,6 +109,9 @@ volatile uint8_t ref_calibration_mode = 0;
 #define ref_calibration_samples 100
 volatile uint16_t ref_calibration_count = 0;
 
+// This byte is maintained in SRAM (no init) between soft resets and used to flag that we should enter bootloader
+uint32_t reset_bootloader_flag __attribute__((section(".noinit")));
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -125,6 +129,7 @@ HAL_StatusTypeDef set_spi_cpol0_cpha1(void);
 HAL_StatusTypeDef set_spi_cpol0_cpha0(void);
 void fast_spi_transmit(uint16_t, uint8_t);
 void fast_spi_initialise(void);
+void JumpToBootloader(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -139,6 +144,17 @@ void fast_spi_initialise(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+  if(reset_bootloader_flag == reset_bootloader_magic_number)
+  {
+	  // Enter bootloader
+	  reset_bootloader_flag = 0;
+	  JumpToBootloader();
+  }
+  else
+  {
+	  // Don't enter bootloader
+  }
 
   /* USER CODE END 1 */
   
@@ -616,6 +632,12 @@ void receive_cdc_data(uint8_t* buf, uint16_t len)
 		}
 		if(buf[0] == 'r')
 		{
+			reset_bootloader_flag = 0;
+			NVIC_SystemReset();
+		}
+		if(buf[0] == 'b')
+		{
+			reset_bootloader_flag = reset_bootloader_magic_number;
 			NVIC_SystemReset();
 		}
 	}
@@ -626,6 +648,70 @@ void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	dispatch_drive_data();
 	comm_sequence_stage = 0;
+}
+
+//From: https://stm32f4-discovery.net/2017/04/tutorial-jump-system-memory-software-stm32/
+void JumpToBootloader(void) {
+
+	void (*SysMemBootJump)(void);
+
+	/**
+	 * Step: Set system memory address.
+	 *
+	 *       For STM32L412xx, system memory is on 0x1FFF 0000
+	 *       For other families, check AN2606 document table 110 with descriptions of memory addresses
+	 */
+	volatile uint32_t addr = 0x1FFF0000;
+
+	/**
+	 * Step: Disable RCC, set it to default (after reset) settings
+	 *       Internal clock, no PLL, etc.
+	 */
+#if defined(USE_HAL_DRIVER)
+	HAL_RCC_DeInit();
+#endif /* defined(USE_HAL_DRIVER) */
+#if defined(USE_STDPERIPH_DRIVER)
+	RCC_DeInit();
+#endif /* defined(USE_STDPERIPH_DRIVER) */
+
+	/**
+	 * Step: Disable systick timer and reset it to default values
+	 */
+	SysTick->CTRL = 0;
+	SysTick->LOAD = 0;
+	SysTick->VAL = 0;
+
+	/**
+	 * Step: Remap system memory to address 0x0000 0000 in address space
+	 *       For each family registers may be different.
+	 *       Check reference manual for each family.
+	 *
+	 *       For STM32F4xx, MEMRMP register in SYSCFG is used (bits[1:0])
+	 *       For STM32F0xx, CFGR1 register in SYSCFG is used (bits[1:0])
+	 *       For others, check family reference manual
+	 */
+	__HAL_SYSCFG_REMAPMEMORY_SYSTEMFLASH();	//Call HAL macro to do this for you
+
+	/**
+	 * Step: Set jump memory location for system memory
+	 *       Use address with 4 bytes offset which specifies jump location where program starts
+	 */
+	SysMemBootJump = (void (*)(void)) (*((uint32_t *)(addr + 4)));
+
+	/**
+	 * Step: Set main stack pointer.
+	 *       This step must be done last otherwise local variables in this function
+	 *       don't have proper value since stack pointer is located on different position
+	 *
+	 *       Set direct address location which specifies stack pointer in SRAM location
+	 */
+	__set_MSP(*(uint32_t *)addr);
+
+	/**
+	 * Step: Actually call our function to jump to set location
+	 *       This will start system memory execution
+	 */
+	SysMemBootJump();
 }
 
 /* USER CODE END 4 */
