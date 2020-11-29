@@ -64,6 +64,8 @@ int16_t inphase[sine_oversample] = {0,  128,  256,  383,  509,  632,  753,  871,
 int16_t quadphase[sine_oversample] = {2047, 2043, 2031, 2011, 1983, 1947, 1903, 1852, 1794, 1728, 1656, 1577,  1492, 1401, 1305, 1203, 1097,  986,  871,  753,  632,  509,  383,  256,   128,    0, -129, -257, -384, -510, -633, -754, -872, -987,-1098,-1204, -1306,-1402,-1493,-1578,-1657,-1729,-1795,-1853,-1904,-1948,-1984,-2012, -2032,-2044,-2048,-2044,-2032,-2012,-1984,-1948,-1904,-1853,-1795,-1729, -1657,-1578,-1493,-1402,-1306,-1204,-1098, -987, -872, -754, -633, -510,  -384, -257, -129,   -1,  128,  256,  383,  509,  632,  753,  871,  986,  1097, 1203, 1305, 1401, 1492, 1577, 1656, 1728, 1794, 1852, 1903, 1947,  1983, 2011, 2031, 2043};
 // Pointer to sample of in-phase sine wave for Reference DAC
 volatile uint16_t drive_ptr = 0;
+// Flag to enable or disable drive signal
+volatile uint8_t drive_enable = 1;
 
 // Buffer to hold sense data
 # define periods_per_demod 5
@@ -458,7 +460,14 @@ uint16_t Package_DAC_Data(int16_t data)
 void dispatch_drive_data()
 {
 	HAL_GPIO_WritePin(GPIOA, CS_DRIVE_Pin, GPIO_PIN_RESET);
-	dac_buffer = Package_DAC_Data(inphase[drive_ptr]);
+	if(drive_enable)
+	{
+		dac_buffer = Package_DAC_Data(inphase[drive_ptr]);
+	}
+	else
+	{
+		dac_buffer = Package_DAC_Data(0);
+	}
 	fast_spi_transmit(dac_buffer, 0);
 	if(++drive_ptr >= sine_oversample)
 	{
@@ -589,9 +598,16 @@ void fast_spi_initialise()
 // Callback for when data is recieved via CDC, called from usbd_cdc_if.c
 void receive_cdc_data(uint8_t* buf, uint16_t len)
 {
-	if(len == 1 && buf[0]=='c')
+	if(len == 1)
 	{
-		ref_calibration_mode = !ref_calibration_mode;
+		if(buf[0] == 'c')
+		{
+			ref_calibration_mode = !ref_calibration_mode;
+		}
+		if(buf[0] == 'm')
+		{
+			drive_enable = !drive_enable;
+		}
 	}
 }
 
