@@ -608,6 +608,10 @@ void receive_cdc_data(uint8_t* buf, uint16_t len)
 		{
 			drive_enable = !drive_enable;
 		}
+		if(buf[0] == 'r')
+		{
+			NVIC_SystemReset();
+		}
 	}
 }
 
