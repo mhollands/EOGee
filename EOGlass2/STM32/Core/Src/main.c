@@ -76,8 +76,9 @@ volatile uint16_t sense_ptr = 0;
 // Buffer to hold signal data
 # define signal_packet_size 64
 # define signal_downsample_lenpower 5
-uint32_t signal_downsample_accumulator = 0;
-uint16_t signal_downsample_counter = 0;
+uint32_t signal_downsample_accumulator = 0; // Accumulator used to downsample from base clock sample rate to reasonable sample rate
+uint16_t signal_downsample_counter = 0; // Counter used to downsample from base clock sample rate to reasonable sample rate
+uint32_t signal_averaging_accumulator = 0; // Accumulator used to average each packet so that we can target average value to our target
 uint16_t signal_buffer[signal_packet_size*2]; // Double length for double buffering
 volatile uint16_t signal_ptr = 0;
 volatile uint8_t double_buffer_flag = 0;
@@ -535,12 +536,13 @@ void fast_spi_rxcallback(uint16_t data)
 					signal_buffer[signal_ptr + double_buffer_flag*signal_packet_size] = sample | signal_mask;
 					signal_downsample_accumulator = 0;
 					signal_downsample_counter = 0;
+					signal_averaging_accumulator += sample;
 					// If we are adding new data but we haven't finished transmitting the old data, throw error flag
 					if(signal_packet_ready_flag == (double_buffer_flag + 1))
 					{
 						error = 1;
 					}
-					if(++signal_ptr >= signal_packet_size)
+					if(++signal_ptr >= signal_packet_size) // When we have enough data for a full packet
 					{
 						// Reset pointer to start of buffer
 						signal_ptr = 0;
@@ -551,25 +553,29 @@ void fast_spi_rxcallback(uint16_t data)
 							// Switch which buffer we are using
 							double_buffer_flag = (double_buffer_flag == 0 ? 1 : 0);
 						}
-					}
-					if(!ref_calibration_mode)
-					{
-						if(sample > ref_upper_threshold)
+
+						// Adjust reference so packet average is the target
+						uint32_t signal_packet_average = signal_averaging_accumulator / signal_packet_size;
+						if(!ref_calibration_mode)
 						{
-							if((ref_voltage -= (uint16_t) ((sample - ref_target)/dac_to_adc_counts)) < -2048)
+							if(signal_packet_average > ref_upper_threshold)
 							{
-								ref_voltage = -2048;
+								if((ref_voltage -= (uint16_t) ((signal_packet_average - ref_target)/dac_to_adc_counts)) < -2048)
+								{
+									ref_voltage = -2048;
+								}
+							}
+							if(signal_packet_average < ref_lower_threshold)
+							{
+								if((ref_voltage += (uint16_t) ((ref_target - signal_packet_average)/dac_to_adc_counts)) > 2047)
+								{
+									ref_voltage = 2047;
+								}
 							}
 						}
-						if(sample < ref_lower_threshold)
-						{
-							if((ref_voltage += (uint16_t) ((ref_target - sample)/dac_to_adc_counts)) > 2047)
-							{
-								ref_voltage = 2047;
-							}
-						}
+						signal_averaging_accumulator = 0;
 					}
-					else
+					if(ref_calibration_mode)
 					{
 						if(++ref_calibration_count >= ref_calibration_samples)
 						{
