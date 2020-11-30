@@ -10,8 +10,14 @@ import glob
 buffer_len = 2000
 sampling_rate = 30000/32
 demod_sample_rate = 30000/100/5;
-demod_sampling_ratio = sampling_rate/demod_sample_rate
+drive_frequency = 300;
 adc_counts_per_dac_code = 30.126222239066166
+negative_sense_node = "left eye"
+positive_sense_node = "right eye"
+drive_node = "left nose"
+ground_nose = "right nose"
+drive_resistance = "1M"
+
 
 def connect_to_usb():
 	available_devices = []
@@ -66,7 +72,8 @@ def update(frame):
 	ax_y.set_xlim(0, len(y))
 	ln_y.set_data(range(len(y)), y)
 
-	ydata_filt = scipy.signal.lfilter(filt_b, filt_a, ydata)
+	ydata_filt = scipy.signal.lfilter(filt_60b, filt_60a, ydata)
+	ydata_filt = scipy.signal.lfilter(filt_lpb, filt_lpa, ydata_filt)
 	y_filt = ydata_filt[-buffer_len:] - (offset - 2048)*adc_counts_per_dac_code
 	ln_y_filt.set_data(range(len(y_filt)), y_filt)
 
@@ -89,8 +96,12 @@ def update(frame):
 
 s = connect_to_usb()
 
-filt_b, filt_a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
-# plot_filter(filt_b, filt_a, sampling_rate)
+filt_60b, filt_60a = scipy.signal.iirnotch(60, 3, fs=sampling_rate)
+filt_300b, filt_300a = scipy.signal.iirnotch(300, 3, fs=sampling_rate)
+filt_lpb, filt_lpa = scipy.signal.butter(3, 2*100/sampling_rate)
+# plot_filter(filt_60b, filt_60a, sampling_rate)
+# plot_filter(filt_300b, filt_300a, sampling_rate)
+# plot_filter(filt_lpb, filt_lpa, sampling_rate)
 
 fig, [ax_y, ax_o, ax_f, ax_d] = plt.subplots(4,1)
 ydata = []
@@ -107,10 +118,24 @@ ax_y.set_xlabel("Sample")
 ax_y.set_ylabel("ADC Code")
 
 ani = FuncAnimation(fig, update, init_func=init)
-plt.show()
+plt.show(block=True)
 
-# if(len(ydata) > 0):
-# 	save_data = {"ydata": ydata, "demoddata": demoddata, "offsetdata": offsetdata}
-# 	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
-# 	np.save(filename, save_data)
-# 	print("Saved as {0}".format(filename))
+s.close()
+
+if(len(ydata) > 0):
+	save_data = {	"ydata": ydata,
+					"demoddata": demoddata, 
+					"offsetdata": offsetdata, 
+					"adc_counts_per_dac_code": adc_counts_per_dac_code, 
+					"sampling_rate": sampling_rate, 
+					"demod demod_sample_rate": demod_sample_rate,
+					"drive_frequency": drive_frequency,
+					"negative_sense_node": negative_sense_node,
+					"positive_sense_node": positive_sense_node,
+					"drive_node": drive_node,
+					"ground_nose": ground_nose,
+					"drive_resistance": drive_resistance}
+
+	filename = "logger_data_{0}.npy".format(str(time.time()).replace(".", "-"))
+	np.save(filename, save_data)
+	print("Saved as {0}".format(filename))
