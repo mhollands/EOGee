@@ -1,0 +1,67 @@
+(export (version D)
+  (design
+    (source "/Users/matthollands/Library/Mobile Documents/com~apple~CloudDocs/PersonalProjects/EOGee/Github/EOGee/EOGlass2/Kicad/UFL_Coax_adapter/UFL_Coax_Adapter/UFL_Coax_Adapter.sch")
+    (date "Saturday, 28 November 2020 at 18:26:18")
+    (tool "Eeschema (5.1.5-0-10_14)")
+    (sheet (number 1) (name /) (tstamps /)
+      (title_block
+        (title)
+        (company)
+        (rev)
+        (date)
+        (source UFL_Coax_Adapter.sch)
+        (comment (number 1) (value ""))
+        (comment (number 2) (value ""))
+        (comment (number 3) (value ""))
+        (comment (number 4) (value "")))))
+  (components
+    (comp (ref J1)
+      (value Conn_Coaxial)
+      (footprint Connector_Coaxial:U.FL_Molex_MCRF_73412-0110_Vertical)
+      (datasheet " ~")
+      (libsource (lib Connector) (part Conn_Coaxial) (description "coaxial connector (BNC, SMA, SMB, SMC, Cinch/RCA, ...)"))
+      (sheetpath (names /) (tstamps /))
+      (tstamp 5FC306A0))
+    (comp (ref TP1)
+      (value TestPoint)
+      (footprint TestPoint:TestPoint_Pad_2.0x2.0mm)
+      (datasheet ~)
+      (libsource (lib Connector) (part TestPoint) (description "test point"))
+      (sheetpath (names /) (tstamps /))
+      (tstamp 5FC314C3)))
+  (libparts
+    (libpart (lib Connector) (part Conn_Coaxial)
+      (description "coaxial connector (BNC, SMA, SMB, SMC, Cinch/RCA, ...)")
+      (docs " ~")
+      (footprints
+        (fp *BNC*)
+        (fp *SMA*)
+        (fp *SMB*)
+        (fp *SMC*)
+        (fp *Cinch*))
+      (fields
+        (field (name Reference) J)
+        (field (name Value) Conn_Coaxial))
+      (pins
+        (pin (num 1) (name In) (type passive))
+        (pin (num 2) (name Ext) (type passive))))
+    (libpart (lib Connector) (part TestPoint)
+      (description "test point")
+      (docs ~)
+      (footprints
+        (fp Pin*)
+        (fp Test*))
+      (fields
+        (field (name Reference) TP)
+        (field (name Value) TestPoint))
+      (pins
+        (pin (num 1) (name 1) (type passive)))))
+  (libraries
+    (library (logical Connector)
+      (uri "/Library/Application Support/kicad/library/Connector.lib")))
+  (nets
+    (net (code 1) (name "Net-(J1-Pad1)")
+      (node (ref J1) (pin 1))
+      (node (ref TP1) (pin 1)))
+    (net (code 2) (name GND)
+      (node (ref J1) (pin 2)))))
