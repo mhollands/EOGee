@@ -533,77 +533,78 @@ void fast_spi_rxcallback(uint16_t data)
 
 	switch(comm_sequence_stage)
 	{
-	case(0):	begin_sense_read(); break;
-	case(1):
+		case(0):	begin_signal_read(); break; // Begin read EOG signal
+		case(1):	// Handle EOG result
+					signal_downsample_accumulator += data >> 2; //add data to accumulator (ADC 2 LSBs are always zeros)
+					if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
+					{
+						uint16_t sample = (signal_downsample_accumulator >> signal_downsample_lenpower);
+						ref_buffer[signal_ptr + double_buffer_flag*signal_packet_size] = ((uint16_t)(ref_voltage+2048)) | ref_mask;
+						signal_buffer[signal_ptr + double_buffer_flag*signal_packet_size] = sample | signal_mask;
+						signal_downsample_accumulator = 0;
+						signal_downsample_counter = 0;
+						signal_averaging_accumulator += sample;
+						// If we are adding new data but we haven't finished transmitting the old data, throw error flag
+						if(signal_packet_ready_flag == (double_buffer_flag + 1))
+						{
+							error = 1;
+						}
+						if(++signal_ptr >= signal_packet_size) // When we have enough data for a full packet
+						{
+							// Reset pointer to start of buffer
+							signal_ptr = 0;
+							// Mark that this buffer is ready for sending over USB
+							signal_packet_ready_flag = double_buffer_flag + 1;
+							if(double_buffered)
+							{
+								// Switch which buffer we are using
+								double_buffer_flag = (double_buffer_flag == 0 ? 1 : 0);
+							}
+
+							// Adjust reference so packet average is the target
+							uint32_t signal_packet_average = signal_averaging_accumulator / signal_packet_size;
+							if(!ref_calibration_mode)
+							{
+								if(signal_packet_average > ref_upper_threshold)
+								{
+									if((ref_voltage -= (uint16_t) ((signal_packet_average - ref_target)/dac_to_adc_counts)) < -2048)
+									{
+										ref_voltage = -2048;
+									}
+								}
+								if(signal_packet_average < ref_lower_threshold)
+								{
+									if((ref_voltage += (uint16_t) ((ref_target - signal_packet_average)/dac_to_adc_counts)) > 2047)
+									{
+										ref_voltage = 2047;
+									}
+								}
+							}
+							signal_averaging_accumulator = 0;
+						}
+						if(ref_calibration_mode)
+						{
+							if(++ref_calibration_count >= ref_calibration_samples)
+							{
+								if(++ref_voltage > 70)
+								{
+									ref_voltage = -70;
+								}
+								ref_calibration_count = 0;
+							}
+						}
+					}
+					begin_sense_read(); // Begin reading sense signal
+					break;
+	case(2):	// Handle sense signal
 				sense_buffer[sense_ptr] = (int16_t)((data >> 2) - (1<<11)); // ADC 2 LSBs are always zeros
 				if(++sense_ptr >= sine_oversample * periods_per_demod)
 				{
 					demod_ready_flag = 1;
 					sense_ptr = 0;
 				}
-				dispatch_ref_data();
+				dispatch_ref_data(); // Dispatch ref data
 				break;
-	case(2):	begin_signal_read(); break;
-	case(3):	signal_downsample_accumulator += data >> 2; //add data to accumulator (ADC 2 LSBs are always zeros)
-				if(++signal_downsample_counter == (1 << signal_downsample_lenpower))
-				{
-					uint16_t sample = (signal_downsample_accumulator >> signal_downsample_lenpower);
-					ref_buffer[signal_ptr + double_buffer_flag*signal_packet_size] = ((uint16_t)(ref_voltage+2048)) | ref_mask;
-					signal_buffer[signal_ptr + double_buffer_flag*signal_packet_size] = sample | signal_mask;
-					signal_downsample_accumulator = 0;
-					signal_downsample_counter = 0;
-					signal_averaging_accumulator += sample;
-					// If we are adding new data but we haven't finished transmitting the old data, throw error flag
-					if(signal_packet_ready_flag == (double_buffer_flag + 1))
-					{
-						error = 1;
-					}
-					if(++signal_ptr >= signal_packet_size) // When we have enough data for a full packet
-					{
-						// Reset pointer to start of buffer
-						signal_ptr = 0;
-						// Mark that this buffer is ready for sending over USB
-						signal_packet_ready_flag = double_buffer_flag + 1;
-						if(double_buffered)
-						{
-							// Switch which buffer we are using
-							double_buffer_flag = (double_buffer_flag == 0 ? 1 : 0);
-						}
-
-						// Adjust reference so packet average is the target
-						uint32_t signal_packet_average = signal_averaging_accumulator / signal_packet_size;
-						if(!ref_calibration_mode)
-						{
-							if(signal_packet_average > ref_upper_threshold)
-							{
-								if((ref_voltage -= (uint16_t) ((signal_packet_average - ref_target)/dac_to_adc_counts)) < -2048)
-								{
-									ref_voltage = -2048;
-								}
-							}
-							if(signal_packet_average < ref_lower_threshold)
-							{
-								if((ref_voltage += (uint16_t) ((ref_target - signal_packet_average)/dac_to_adc_counts)) > 2047)
-								{
-									ref_voltage = 2047;
-								}
-							}
-						}
-						signal_averaging_accumulator = 0;
-					}
-					if(ref_calibration_mode)
-					{
-						if(++ref_calibration_count >= ref_calibration_samples)
-						{
-							if(++ref_voltage > 70)
-							{
-								ref_voltage = -70;
-							}
-							ref_calibration_count = 0;
-						}
-					}
-				}
-				break; //Handle signal read result
 	default: break;
 	}
 	comm_sequence_stage++;
