@@ -1,0 +1,9 @@
+(sym_lib_table
+  (lib (name STM32F412)(type Legacy)(uri ${KIPRJMOD}/STM32F412.lib)(options "")(descr ""))
+  (lib (name DAC7311IDCKR)(type Legacy)(uri ${KIPRJMOD}/DAC7311IDCKR.lib)(options "")(descr ""))
+  (lib (name AD8226)(type Legacy)(uri ${KIPRJMOD}/Libraries/AD8226.lib)(options "")(descr ""))
+  (lib (name AP2210K-3.3TRG1)(type Legacy)(uri ${KIPRJMOD}/Libraries/AP2210K-3.3TRG1.lib)(options "")(descr ""))
+  (lib (name LP5907UVX-3.3_NOPB)(type Legacy)(uri ${KIPRJMOD}/Libraries/LP5907UVX/LP5907UVX-3.3_NOPB.lib)(options "")(descr ""))
+  (lib (name LP5907UVX-4.5_NOPB)(type Legacy)(uri ${KIPRJMOD}/Libraries/LP5907UVX/LP5907UVX-4.5_NOPB.lib)(options "")(descr ""))
+  (lib (name power2)(type Legacy)(uri ${KIPRJMOD}/Libraries/power2.lib)(options "")(descr ""))
+)

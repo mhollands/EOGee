@@ -1,0 +1,3 @@
+(fp_lib_table
+  (lib (name LP5907UVX)(type KiCad)(uri ${KIPRJMOD}/Libraries/LP5907UVX/LP5907UVX.pretty)(options "")(descr ""))
+)
