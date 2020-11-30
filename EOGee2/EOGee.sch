@@ -1938,7 +1938,7 @@ F 3 "~" H 1550 7400 50  0001 C CNN
 	1    0    0    1   
 $EndComp
 Text Notes 1300 5700 0    50   ~ 0
-Digikey PN: CP-3523MJCT-ND
+Digikey PN: CP-3523SJCT-ND
 Text Notes 1300 7800 0    50   ~ 0
 Digikey PN: SC1489-1-ND
 $Comp
